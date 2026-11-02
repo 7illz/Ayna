@@ -14,6 +14,14 @@ official SAM 2 package and/or Transformers from their official projects. Use onl
 Hiera Tiny/Small and DINOv2 Small checkpoints. Store weights outside Git and configure local
 paths explicitly; Ayna never downloads model weights at API startup.
 
+The tested isolated setup is reproducible with:
+
+```powershell
+python -m venv .venv-vision
+.\.venv-vision\Scripts\python -m pip install -r worker\requirements-vision.txt
+.\.venv-vision\Scripts\python scripts\check_vision_runtime.py
+```
+
 Recommended settings for 6 GB VRAM are batch size one, 384 px longest edge, inference mode,
 and no concurrent local model jobs. Start with:
 

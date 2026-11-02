@@ -2,13 +2,15 @@
 
 Executed on Windows 11 with Python 3.12.8, Node 24.14.1, 16 GB system RAM and an NVIDIA
 GeForce RTX 4050 Laptop GPU. `nvidia-smi` reported driver 616.92, CUDA UMD 13.4 and
-6,141 MiB total VRAM. PyTorch/SAM 2/DINOv2 weights were intentionally not installed in the
-default application environment; optional model loaders remain disabled and CPU fallback is
-the tested baseline. Docker was unavailable on PATH, so Compose validation was not run.
+6,141 MiB total VRAM. The default application remains CPU-only. A separate ignored vision
+environment installed CUDA PyTorch 2.11.0+cu128, official SAM 2 commit `2b90b9f5`,
+Transformers 5.22.1 and OpenCV 5.0.0. No SAM 2 or DINOv2 model weights were downloaded.
+Docker was unavailable on PATH, so Compose validation was not run.
 
 | Check | Result |
 | --- | --- |
-| `python scripts/check_gpu.py` | PASS; NVIDIA driver found, PyTorch absent, CPU path selected |
+| `.venv-vision` `scripts/check_gpu.py` | PASS; RTX 4050 and CUDA available |
+| `.venv-vision` `scripts/check_vision_runtime.py` | PASS; 384 px CUDA operation, 20.85 MiB peak VRAM |
 | `pytest -q` | PASS: 22 tests |
 | `ruff check .` | PASS |
 | `ruff format --check .` | PASS: 36 files |

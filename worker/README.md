@@ -14,3 +14,5 @@ contains no CUDA, PyTorch, SAM 2, DINOv2, or model-weight dependency, so Intel I
 CPU-only Docker remain supported.
 
 See `docs/DEV2_QUALITY_STOREFRONT.md` for the opt-in environment setup and safety limits.
+Pinned optional runtime packages are in `worker/requirements-vision.txt`; they are excluded
+from the API/worker Docker image and must be installed only in a separate lab environment.
