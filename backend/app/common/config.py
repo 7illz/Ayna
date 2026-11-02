@@ -28,12 +28,26 @@ class Settings(BaseSettings):
     max_image_pixels: int = Field(default=20_000_000, gt=0)
     max_images: int = Field(default=5, ge=2, le=5)
     min_images: int = Field(default=2, ge=2, le=5)
+    currency: str = "BDT"
+    storefront_url: str = "http://localhost:5173"
+    session_days: int = Field(default=14, ge=1, le=30)
+    demo_payments_enabled: bool = True
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "Ayna <noreply@example.com>"
+    smtp_starttls: bool = True
 
     @model_validator(mode="after")
     def guard_production(self) -> "Settings":
         if self.min_images > self.max_images:
             raise ValueError("min_images must not exceed max_images")
         if self.environment == "production":
+            if self.demo_payments_enabled:
+                raise ValueError("Demo payments are forbidden in production")
             if self.dev_auth_enabled or self.queue_mode == "inline":
                 raise ValueError("Development auth and inline queue are forbidden in production")
             if self.asset_signing_key.startswith("ayna-local"):

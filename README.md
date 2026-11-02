@@ -1,142 +1,129 @@
 # Ayna
 
-Ayna's shared product 3D preview foundation: React/TypeScript/Vite/Tailwind + React Three
-Fiber; FastAPI/Pydantic/SQLAlchemy/Alembic; PostgreSQL, Redis/RQ and private MinIO.
-Create products, upload 2–5 photos, generate a deterministic **dummy GLB**, review it, and
-explore approved previews in the storefront. No GPU, model weights or paid API keys.
+A regular multi-category e-commerce platform with optional 3D product previews.
+React, TypeScript, Tailwind, FastAPI, SQLAlchemy/Alembic, PostgreSQL, Redis/RQ,
+and private MinIO storage. Local mock AI needs no GPU or paid API keys.
 
-This bootstrap does not reconstruct products photorealistically. Hosted AI adapters,
-virtual try-on, payments, production identity and optional vision models are later work.
+## Shop functionality
 
-## Windows setup
+- Search, categories, filters, sorting, pagination, product photos, stock and size/color options.
+- Guest shopping bag, account cart merge, wishlist, comparison and recently viewed products.
+- Customer registration, cookie sessions, profile/password management, recovery and saved addresses.
+- BDT checkout with server-calculated totals, coupons, delivery charges and cash on delivery.
+- Private order history, receipts, fulfillment tracking, cancellation and return requests.
+- Verified-purchase reviews, notifications and customer support tickets.
+- Seller photo listings, SKUs, option inventory, sales totals and fulfillment.
+- Administrator reporting, users/roles, listings, orders, returns, coupons, categories,
+  review moderation, support replies and delivery/tax settings.
+- Optional Stripe hosted checkout/webhooks/refunds and SMTP password recovery adapters.
 
-Install Git and Docker Desktop with **WSL2 and Linux containers** enabled. Start Docker
-Desktop; `docker info` must succeed. Allow several GB for the initial build. MinIO builds
-from a pinned upstream commit because the former official community images are unavailable.
-The initial build needs internet; installed mock generation never contacts a provider.
+Products can be sold without generating a 3D model. The separate product studio retains
+its reviewed, explicitly labeled **dummy GLB** workflow. Photorealistic reconstruction
+and clothing/shoe try-on are not implemented by the mock provider.
 
-```powershell
-git clone https://github.com/RafiALMahmud/Ayna.git
-cd Ayna
-git switch chore/bootstrap # main after the bootstrap is reviewed and merged
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-docker compose up --build -d --wait --wait-timeout 240
-docker compose ps
-```
+## Run locally on Windows
 
-- Web: http://localhost:5173
-- API: http://localhost:8000/health and http://localhost:8000/ready
-- OpenAPI explorer: http://localhost:8000/docs
-- Private MinIO console: http://localhost:9001 (local example credentials in `.env.example`)
-
-Compose starts the six app/infrastructure services plus one-shot migration/bucket setup.
-If another application owns the default ports, set `API_PORT`, `WEB_PORT`,
-`VITE_API_BASE_URL` and the matching `CORS_ORIGINS` in the ignored `.env`.
-Only web/API and the MinIO console bind to loopback. `docker compose down` stops them and
-retains data. Migrations apply automatically; no CUDA or NVIDIA runtime is installed.
-
-## Demo
-
-1. In **Product studio**, **Add product**, name/category, and 2–5 JPEG/PNG/WebP photographs.
-2. Put a clear front view first. **Generate mock preview** starts an asynchronous RQ job.
-3. Rotate/zoom/reset the labeled magenta dummy and compare the original-photo gallery.
-4. Review its `not_evaluated` quality disclosure. Approve to publish in **Storefront**, or
-   reject to keep it private. Rejection revokes previously public image and model routes.
-
-The development seller UUID is `11111111-1111-4111-8111-111111111111`. Development-only
-`X-Dev-Seller-Id` selects ownership; **this is not production authentication**.
-`DEV_AUTH_ENABLED=false` disables seller routes. Production startup rejects development
-auth/inline queue/default signing key. Implement real identity before public deployment.
-
-Uploads are capped at 10 MiB / 20 million pixels, MIME/signature checked, and assigned
-server-generated paths. Originals stay private; galleries serve re-encoded, resized,
-metadata-free derivatives. Seller asset links are signed, valid for 15 minutes; reload to
-renew. Public routes always check current approval. API keys never enter frontend config.
-
-## Automated checks
-
-```powershell
-docker compose exec api pytest -q
-docker compose exec api ruff check .
-docker compose exec api ruff format --check .
-docker compose exec api mypy app
-docker compose exec api alembic check
-docker compose exec api python -m scripts.smoke
-docker compose exec web npm run lint
-docker compose exec web npm run typecheck
-docker compose exec web npm run test -- --run
-docker compose exec web npm run build
-```
-
-The live smoke exercises real PostgreSQL/RQ/Redis/MinIO for 2 and 5 photos, idempotency,
-quality, ownership, approval and revocation; it leaves rejected fixtures under random
-test sellers. Unit tests use isolated SQLite/files, apply and reverse Alembic every test,
-and simulate failures. No cloud provider is used. CI runs these checks and the full
-Compose/browser workflow. Human laptop results belong in `docs/TEST_RESULTS_TEMPLATE.md`.
-Executed bootstrap results and notices are recorded in `docs/TEST_RESULTS.md`. Browser tests
-leave labeled demo products under the demo seller.
-
-Browser tests on the host, with Node 22.21+ and the Compose stack running:
-
-```powershell
-cd frontend
-npm ci
-npx playwright install chromium
-npm run test:e2e
-```
-
-## Native development
-
-Python 3.12 and Node 22.21+ are the tested toolchain. `requirements.lock` and
-`package-lock.json` pin dependencies. An explicit development-only inline queue and
-SQLite/local storage support standalone mock development when Docker is unavailable:
+Use Python 3.12 and Node 22.21 or newer. From the repository root:
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python -m pip install -r backend/requirements.lock
-cd backend
-$env:DATABASE_URL='sqlite:///./.data/ayna.db'
-$env:QUEUE_MODE='inline'
-$env:STORAGE_BACKEND='local'
-$env:AI_PROVIDER='mock'
-..\.venv\Scripts\alembic upgrade head
-..\.venv\Scripts\python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+.\.venv\Scripts\python.exe -m pip install -r backend/requirements.lock
+npm.cmd --prefix frontend ci
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start-local.ps1
 ```
 
-In another terminal, `cd frontend`, `npm ci`, `npm run dev`. Native RQ with Redis uses
-`python -m app.worker`; Windows uses `SimpleWorker`, Docker/Linux uses process-isolated
-`Worker`. Compose always uses RQ. Inline mode uses FastAPI background tasks for mock only.
+Shop: **http://localhost:5175**. API explorer: **http://localhost:8002/docs**.
+The helper migrates and seeds a separate SQLite database, builds the web app, then runs
+both servers in the background. Logs and process records are in `.data/`; local database
+and assets are in `backend/.data/`. Closing the terminal leaves the servers running.
+Choose alternate ports with `-ApiPort 8003 -WebPort 5176`. The helper refuses occupied ports.
+Use `-NoSeed` on later starts to skip sample catalog setup.
 
-## Contracts and extension points
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop-local.ps1
+```
 
-`docs/PROJECT_BRIEF.md` and `docs/API_CONTRACT.md` are unchanged copies of the kit baseline.
-`docs/BOOTSTRAP_CONTRACT.md` records additive behavior. FastAPI generates `docs/openapi.json`;
-frontend types derive from it. Regenerate both with every reviewed schema change:
+This stops only the recorded Ayna processes and preserves data. Restart after source changes.
+Native mode uses SQLite, local files and inline mock jobs; Docker uses PostgreSQL,
+Redis workers and MinIO. These modes have separate data.
+
+## Sample accounts
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Customer | shopper@ayna.local | AynaDemo!2026 |
+| Seller | seller@ayna.local | AynaDemo!2026 |
+| Administrator | admin@ayna.local | AynaDemo!2026 |
+
+These public credentials are development fixtures. The seed script refuses production.
+It adds eight photographed products and `WELCOME10` (10% off, minimum BDT 1,000).
+It does not replenish stock or reset existing passwords when rerun. The development
+payment simulator is labeled in the UI; COD does not require payment credentials.
+Browser tests create additional labeled fixtures and orders in the local database.
+
+## Docker / PostgreSQL
+
+Start Docker Desktop with Linux containers; `docker info` must succeed.
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker compose config --quiet
+docker compose up --build -d --wait --wait-timeout 240
+docker compose exec -T api python -m scripts.seed_shop
+docker compose ps
+```
+
+Defaults: web http://localhost:5173, API http://localhost:8000/docs, private MinIO
+console http://localhost:9001. Set `API_PORT`, `WEB_PORT`, `VITE_API_BASE_URL`,
+`STOREFRONT_URL`, and `CORS_ORIGINS` together when changing ports. An existing ignored
+`.env` can override these defaults. Stop native servers first if reusing their ports.
+`docker compose down` retains volumes. Initial image builds need internet.
+
+## Verification
 
 ```powershell
 cd backend
-..\.venv\Scripts\python -m scripts.export_openapi
-cd ../frontend
-npm run types:api
+..\.venv\Scripts\python.exe -m pytest -q
+..\.venv\Scripts\python.exe -m ruff check .
+..\.venv\Scripts\python.exe -m ruff format --check .
+..\.venv\Scripts\python.exe -m mypy app
+cd ..\frontend
+npm.cmd run lint
+npm.cmd run typecheck
+npm.cmd run test -- --run
+npm.cmd run build
+npx.cmd playwright install chromium
+$env:PLAYWRIGHT_BASE_URL='http://localhost:5175'
+$env:E2E_API_URL='http://localhost:8002'
+npm.cmd run test:e2e
 ```
 
-- `backend/app/modules/catalog/`, `generation/` and seller UI: Developer 1 extension points.
-- `backend/app/modules/quality/`, `public_catalog/`, review and storefront UI: Dev2 starters.
-- `backend/app/common/`: models, schemas, settings, auth, storage and response views.
-- `backend/migrations/`: explicit reversible migration; no runtime `create_all`.
-- `worker/`: optional future inference adapter boundary; no SAM 2/DINOv2/CUDA dependency.
-- `backend/fixtures/dummy.glb`: original CC0 fixture; see `docs/ASSET_LICENSES.md`.
+Live transaction smoke, with the native server running:
 
-`VITE_API_BASE_URL` configures the browser API origin. `CORS_ORIGINS` is an explicit JSON
-allowlist. `/api/v1/config` supplies upload limits. The S3 adapter supports private R2 via
-server-side endpoint/bucket/region/credentials. `.env` is ignored; example credentials are
-public local-development defaults. The original kit README is in `docs/DEVELOPER1_KIT.md`.
+```powershell
+cd backend
+$env:SMOKE_API_URL='http://localhost:8002'
+$env:STOREFRONT_URL='http://localhost:5175'
+..\.venv\Scripts\python.exe -m scripts.commerce_smoke
+```
 
-## Limits
+CI runs backend and frontend checks, migration/API schema drift checks and the full
+PostgreSQL/Redis/MinIO mock workflow plus desktop/mobile browser journeys. See
+[commerce implementation notes](docs/COMMERCE.md) and [executed checks](docs/COMMERCE_TEST_RESULTS.md).
+The original kit and [bootstrap readme](docs/BOOTSTRAP_README.md) describe the earlier
+3D-only foundation; the user's subsequent request expanded the application to commerce.
 
-Mock geometry is unrelated to products. Quality scores are unknown, not fabricated.
-Shirts/pants are experimental and photographs remain authoritative. No guaranteed 360°
-fidelity from 2–5 photos. The viewer falls back to photos on unavailable WebGL/broken GLB;
-it uses no remote HDR maps/fonts/assets. Full CRUD editing/removal, paid adapters and
-automatic stale-worker recovery are future milestones. Work on `chore/bootstrap`; never
-push directly to `main` or merge without review.
+## Deployment configuration
+
+Production requires HTTPS with same-site web/API domains, restricted CORS, private
+storage, real secrets, `ENVIRONMENT=production`, `DEV_AUTH_ENABLED=false`,
+`DEMO_PAYMENTS_ENABLED=false`, and RQ workers. Use an empty production database;
+never expose the seeded development database. Cookie sessions provide real role checks;
+the legacy seller-ID header is only a development studio shortcut.
+
+COD is the default. Real card settlement needs an eligible Stripe merchant account,
+both Stripe secrets and a reachable signed webhook; it has not been exercised with
+live money. Password recovery needs SMTP in production. Courier updates and COD
+collection are recorded by staff; there is no carrier or banking integration.
+Store policies/contact details are editable development examples and need merchant review.
+Photo credits and demo brand disclosures: [DEMO_PHOTOS.md](docs/DEMO_PHOTOS.md).

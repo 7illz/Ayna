@@ -7,6 +7,7 @@ boto3==1.43.123
 botocore==1.43.123
 certifi==2026.10.23
 cffi==2.1.1
+charset-normalizer==3.5.2
 click==8.5.0
 colorama==0.4.6
 croniter==6.2.4
@@ -42,12 +43,14 @@ python-dotenv==1.2.4
 python-multipart==0.0.33
 PyYAML==6.0.3
 redis==8.1.0
+requests==2.34.2
 rq==3.0.0
 ruff==0.17.3
 s3transfer==0.19.3
 six==1.17.0
 SQLAlchemy==2.1.6
 starlette==1.10.0
+stripe==16.1.0
 types-cffi==2.1.0.20260827
 types-Pillow==10.2.0.20240822
 types-pyOpenSSL==24.1.0.20240722

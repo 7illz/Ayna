@@ -7,7 +7,7 @@ test('seller uploads, queues, reviews, and opens an approved 3D preview', async 
   const name = `Ayna browser tote ${testInfo.project.name} ${Date.now()}`
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto('/')
+  await page.goto('/#/studio')
   await expect(page).toHaveTitle('Ayna')
   await page.getByRole('button', { name: 'Add product', exact: true }).click()
   await page.getByLabel('Product name').fill(name)

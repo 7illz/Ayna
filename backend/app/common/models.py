@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, String, UniqueConstraint, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.db import Base
@@ -28,6 +28,14 @@ class Product(Base):
     name: Mapped[str] = mapped_column(String(160))
     category: Mapped[str] = mapped_column(String(32))
     description: Mapped[str] = mapped_column(String(3000), default="")
+    price_minor: Mapped[int] = mapped_column(default=0, server_default="0")
+    compare_at_minor: Mapped[int | None]
+    stock: Mapped[int] = mapped_column(default=0, server_default="0")
+    brand: Mapped[str] = mapped_column(String(100), default="", server_default="")
+    sku: Mapped[str | None] = mapped_column(String(80), unique=True, index=True)
+    is_listed: Mapped[bool] = mapped_column(default=False, server_default=false())
+    is_archived: Mapped[bool] = mapped_column(default=False, server_default=false())
+    featured: Mapped[bool] = mapped_column(default=False, server_default=false())
     publish_status: Mapped[str] = mapped_column(String(32), default="draft")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)

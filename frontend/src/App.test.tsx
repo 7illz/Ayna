@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { vi, test, expect } from 'vitest'
-import App from './App'
+import { StudioApp as App } from './App'
 import { CreateProduct } from './features/seller/CreateProduct'
 import type { Config } from './shared/api'
 
