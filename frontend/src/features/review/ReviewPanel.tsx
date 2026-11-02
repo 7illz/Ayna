@@ -15,7 +15,14 @@ export function ReviewPanel({
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const flags = Array.isArray(quality?.metrics.flags)
+    ? quality.metrics.flags.filter((item): item is string => typeof item === 'string')
+    : []
   async function review(decision: 'approve' | 'reject') {
+    if (decision === 'reject' && !notes.trim()) {
+      setError('Add a reason before rejecting this preview.')
+      return
+    }
     setBusy(true)
     setError('')
     try {
@@ -43,6 +50,28 @@ export function ReviewPanel({
         {quality?.notes ||
           'Photo fidelity is not evaluated in mock mode. No similarity score is available.'}
       </p>
+      <div className="quality-summary" aria-label="Quality validation summary">
+        <span className={`status ${quality?.status || 'pending'}`}>
+          {(quality?.status || 'pending').replaceAll('_', ' ')}
+        </span>
+        {flags.length > 0 && (
+          <ul>
+            {flags.map((flag) => (
+              <li key={flag}>{flag}</li>
+            ))}
+          </ul>
+        )}
+        {quality?.uncertain_views && quality.uncertain_views.length > 0 && (
+          <div>
+            <strong>Uncertain or unobserved views</strong>
+            <ul>
+              {quality.uncertain_views.map((view) => (
+                <li key={view}>{view}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
       <label className="small">
         Review notes
         <textarea
@@ -59,7 +88,11 @@ export function ReviewPanel({
         </p>
       )}
       <div className="review-actions">
-        <button className="button primary" onClick={() => review('approve')} disabled={busy}>
+        <button
+          className="button primary"
+          onClick={() => review('approve')}
+          disabled={busy || quality?.status === 'failed'}
+        >
           <Check size={16} /> Approve preview
         </button>
         <button className="button secondary" onClick={() => review('reject')} disabled={busy}>
@@ -67,7 +100,7 @@ export function ReviewPanel({
         </button>
       </div>
       <p className="small muted">
-        Approval publishes this explicitly labeled dummy preview to the demo storefront.
+        Approval publishes this labeled AI-generated preview. Original photos remain authoritative.
       </p>
     </section>
   )

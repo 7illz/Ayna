@@ -6,10 +6,11 @@ from unittest.mock import patch
 
 import pytest
 from PIL import Image
+from sqlalchemy import select
 
 from app.common.config import Settings, get_settings
 from app.common.db import SessionLocal
-from app.common.models import GenerationJob
+from app.common.models import GenerationJob, QualityReport, ReviewAudit
 from app.common.storage import LocalStorage, get_storage
 from app.modules.generation.providers import MockProvider, dummy_glb
 from app.modules.generation.tasks import process_job
@@ -106,6 +107,13 @@ def test_full_workflow_privacy_idempotency_and_revocation(client, owner, count):
     assert client.get(public["model_asset_url"]).status_code == 404
     assert client.get(public["images"][0]["url"]).status_code == 404
     assert client.get("/api/v1/store/products").json() == []
+    with SessionLocal() as db:
+        audits = db.scalars(
+            select(ReviewAudit)
+            .where(ReviewAudit.product_id == product_id)
+            .order_by(ReviewAudit.created_at)
+        ).all()
+        assert [audit.decision for audit in audits] == ["approve", "reject"]
 
 
 def test_image_count_limits_and_pending_review(client, owner):
@@ -220,6 +228,35 @@ def test_missing_published_asset_returns_safe_fallback_status(client, owner):
     with patch.object(get_storage(), "get", side_effect=FileNotFoundError("private path")):
         response = client.get(public["model_asset_url"])
     assert response.status_code == 404 and "private path" not in response.text
+
+
+def test_failed_quality_cannot_be_approved(client, owner):
+    product = create(client, owner)
+    job = generate(client, owner, product)
+    with SessionLocal() as db:
+        report = db.get(QualityReport, job["id"])
+        report.status = "failed"
+        db.commit()
+    response = client.post(
+        f"/api/v1/products/{product['id']}/review",
+        headers=owner,
+        json={"decision": "approve", "notes": "Looks fine"},
+    )
+    assert response.status_code == 409
+    assert client.get("/api/v1/store/products").json() == []
+
+
+def test_public_catalog_hides_approved_product_if_current_model_is_invalid(client, owner):
+    product = create(client, owner)
+    job = generate(client, owner, product)
+    review = f"/api/v1/products/{product['id']}/review"
+    assert client.post(review, headers=owner, json={"decision": "approve"}).status_code == 200
+    with SessionLocal() as db:
+        generated = db.get(GenerationJob, job["id"])
+        generated.status = "failed"
+        db.commit()
+    assert client.get("/api/v1/store/products").json() == []
+    assert client.get(f"/api/v1/store/products/{product['id']}").status_code == 404
 
 
 def test_production_guards_and_local_path_safety(tmp_path):

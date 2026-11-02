@@ -2508,6 +2508,14 @@
           "dev_auth_enabled": {
             "type": "boolean",
             "title": "Dev Auth Enabled"
+          },
+          "quality_device": {
+            "type": "string",
+            "title": "Quality Device"
+          },
+          "quality_optional_models_enabled": {
+            "type": "boolean",
+            "title": "Quality Optional Models Enabled"
           }
         },
         "type": "object",
@@ -2517,7 +2525,9 @@
           "max_images",
           "max_image_bytes",
           "max_image_pixels",
-          "dev_auth_enabled"
+          "dev_auth_enabled",
+          "quality_device",
+          "quality_optional_models_enabled"
         ],
         "title": "AppConfig"
       },

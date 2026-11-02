@@ -6,9 +6,10 @@ from sqlalchemy import select, update
 
 from app.common.config import get_settings
 from app.common.db import SessionLocal
-from app.common.models import GenerationJob, Product, QualityReport, now
+from app.common.models import GenerationJob, Product, now
 from app.common.storage import get_storage
 from app.modules.generation.providers import MockProvider
+from app.modules.quality.service import build_quality_report
 
 logger = logging.getLogger(__name__)
 
@@ -45,18 +46,9 @@ def process_job(job_id: str) -> None:
             job.provenance = result.metadata
             job.status, job.progress, job.finished_at = "succeeded", 100, now()
             product.publish_status = "needs_review"
-            db.add(
-                QualityReport(
-                    product_id=product.id,
-                    job_id=job.id,
-                    status="not_evaluated",
-                    metrics={},
-                    notes=(
-                        "Dummy fixture: photo fidelity cannot be evaluated. Seller review required."
-                    ),
-                    uncertain_views=["all views — dummy geometry; no camera alignment"],
-                )
-            )
+            # Mock generation has no camera-labelled renders. The quality module records
+            # not_evaluated rather than fabricating visual correspondence.
+            db.add(build_quality_report(product, job))
             db.commit()
         except Exception:
             logger.exception("Mock generation failed for job %s", job_id)

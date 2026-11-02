@@ -98,6 +98,10 @@ def config():
         max_image_bytes=settings.max_image_bytes,
         max_image_pixels=settings.max_image_pixels,
         dev_auth_enabled=settings.dev_auth_enabled,
+        quality_device=settings.quality_device,
+        quality_optional_models_enabled=(
+            settings.quality_enable_sam2 or settings.quality_enable_dinov2
+        ),
     )
 
 

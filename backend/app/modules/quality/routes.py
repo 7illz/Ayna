@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.common.auth import seller_id
 from app.common.db import get_db
-from app.common.models import QualityReport, now
+from app.common.models import QualityReport, ReviewAudit, now
 from app.common.schemas import ProductOut, QualityOut, ReviewIn
 from app.common.views import product_out
 from app.modules.catalog.routes import owned_product
@@ -39,8 +39,20 @@ def review_product(
     report = db.get(QualityReport, job.id)
     if report is None:
         raise HTTPException(409, "Quality report is not ready")
+    if body.decision == "approve" and report.status == "failed":
+        raise HTTPException(409, "A failed quality analysis cannot be approved; regenerate first")
     product.publish_status = "approved" if body.decision == "approve" else "rejected"
     report.reviewed_by, report.reviewed_at = owner, now()
-    report.notes = "Dummy fixture; fidelity not evaluated. Seller review: " + body.notes
+    seller_note = body.notes.strip()
+    report.notes = f"{report.notes} Seller review: {seller_note or 'No additional notes.'}"
+    db.add(
+        ReviewAudit(
+            product_id=product.id,
+            job_id=job.id,
+            seller_id=owner,
+            decision=body.decision,
+            notes=seller_note,
+        )
+    )
     db.commit()
     return product_out(product)

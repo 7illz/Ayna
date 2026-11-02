@@ -112,6 +112,8 @@ class AppConfig(BaseModel):
     max_image_bytes: int
     max_image_pixels: int
     dev_auth_enabled: bool
+    quality_device: str
+    quality_optional_models_enabled: bool
 
 
 class HealthOut(BaseModel):

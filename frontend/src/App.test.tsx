@@ -14,6 +14,8 @@ const config: Config = {
   max_image_bytes: 10485760,
   max_image_pixels: 20000000,
   dev_auth_enabled: true,
+  quality_device: 'cpu',
+  quality_optional_models_enabled: false,
 }
 
 test('Ayna studio connects, opens upload dialog, and navigates to approved storefront', async () => {
@@ -68,4 +70,46 @@ test('one photograph cannot submit a generation-ready product', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Create product' }))
   expect(screen.getByRole('alert')).toHaveTextContent('Choose 2–5')
   expect(fetchMock).not.toHaveBeenCalled()
+})
+
+test('approved storefront loads public detail and preserves original gallery', async () => {
+  const product = {
+    id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    name: 'Ayna verified tote',
+    category: 'bags',
+    description: 'Seller photograph remains authoritative.',
+    images: [
+      {
+        id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        url: '/api/v1/store/products/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/images/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+        view_tag: 'front',
+      },
+    ],
+    model_asset_url: '/api/v1/store/products/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/model',
+    disclosure: 'AI-generated 3D preview; unobserved views may be estimated.',
+  }
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (input: string | URL | Request) => {
+      const url = String(input)
+      const body = url.endsWith('/config')
+        ? config
+        : url.endsWith('/api/v1/products')
+          ? []
+          : url.endsWith('/store/products')
+            ? [product]
+            : product
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }),
+  )
+  render(<App />)
+  await screen.findByRole('heading', { name: 'Product studio.' })
+  await userEvent.click(screen.getByRole('button', { name: 'Storefront' }))
+  await userEvent.click(await screen.findByRole('button', { name: /Open Ayna verified tote/ }))
+  expect(await screen.findByText('Original seller photographs')).toBeInTheDocument()
+  expect(screen.getByLabelText('Original product photo gallery')).toBeInTheDocument()
+  expect(screen.getByText(product.disclosure)).toBeInTheDocument()
 })

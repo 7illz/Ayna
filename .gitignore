@@ -14,4 +14,9 @@ dist/
 test-results/
 playwright-report/
 *.log
+*.ckpt
+*.pth
+*.pt
+*.safetensors
+model-cache/
 .DS_Store

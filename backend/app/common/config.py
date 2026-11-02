@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     max_image_pixels: int = Field(default=20_000_000, gt=0)
     max_images: int = Field(default=5, ge=2, le=5)
     min_images: int = Field(default=2, ge=2, le=5)
+    quality_device: Literal["cpu", "auto", "cuda"] = "cpu"
+    quality_max_image_size: int = Field(default=384, ge=128, le=1024)
+    quality_enable_sam2: bool = False
+    quality_enable_dinov2: bool = False
+    quality_sam2_checkpoint: str | None = None
+    quality_dinov2_model_path: str | None = None
 
     @model_validator(mode="after")
     def guard_production(self) -> "Settings":
@@ -38,6 +44,10 @@ class Settings(BaseSettings):
                 raise ValueError("Development auth and inline queue are forbidden in production")
             if self.asset_signing_key.startswith("ayna-local"):
                 raise ValueError("Production requires a private asset signing key")
+        if self.quality_enable_sam2 and not self.quality_sam2_checkpoint:
+            raise ValueError("SAM 2 requires an explicit local checkpoint path")
+        if self.quality_enable_dinov2 and not self.quality_dinov2_model_path:
+            raise ValueError("DINOv2 requires an explicit local model path")
         return self
 
 
