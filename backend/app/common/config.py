@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     quality_max_image_size: int = Field(default=384, ge=128, le=1024)
     quality_enable_sam2: bool = False
     quality_enable_dinov2: bool = False
+    quality_sam2_config: str | None = None
     quality_sam2_checkpoint: str | None = None
     quality_dinov2_model_path: str | None = None
 
@@ -44,8 +45,10 @@ class Settings(BaseSettings):
                 raise ValueError("Development auth and inline queue are forbidden in production")
             if self.asset_signing_key.startswith("ayna-local"):
                 raise ValueError("Production requires a private asset signing key")
-        if self.quality_enable_sam2 and not self.quality_sam2_checkpoint:
-            raise ValueError("SAM 2 requires an explicit local checkpoint path")
+        if self.quality_enable_sam2 and (
+            not self.quality_sam2_config or not self.quality_sam2_checkpoint
+        ):
+            raise ValueError("SAM 2 requires explicit local config and checkpoint paths")
         if self.quality_enable_dinov2 and not self.quality_dinov2_model_path:
             raise ValueError("DINOv2 requires an explicit local model path")
         return self

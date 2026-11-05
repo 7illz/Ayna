@@ -9,6 +9,8 @@ from io import BytesIO
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
+from app.modules.quality.optional_models import MaskPairRefiner, OptionalQualityRuntime
+
 KNOWN_VIEWS = ("front", "left", "right", "side", "back")
 
 
@@ -40,11 +42,40 @@ def _mean_color(pixels: list[tuple[int, int, int]], mask: list[bool]) -> tuple[f
     return channels[0], channels[1], channels[2]
 
 
-def _signals(reference: bytes, render: bytes, size: int) -> dict[str, float]:
+def _signals(
+    reference: bytes,
+    render: bytes,
+    size: int,
+    mask_refiner: MaskPairRefiner | None = None,
+) -> tuple[dict[str, float], str | None, str | None]:
     ref, width, _ = _pixels(reference, size)
     candidate, _, _ = _pixels(render, size)
     ref_mask = _foreground(ref, width)
     candidate_mask = _foreground(candidate, width)
+    refinement_device: str | None = None
+    refinement_error: str | None = None
+    if mask_refiner is not None:
+        try:
+            refined_ref, refined_candidate, refinement_device = mask_refiner(
+                reference,
+                render,
+                ref_mask,
+                candidate_mask,
+                size,
+            )
+            expected = size * size
+            if (
+                len(refined_ref) != expected
+                or len(refined_candidate) != expected
+                or not any(refined_ref)
+                or not any(refined_candidate)
+            ):
+                raise ValueError("optional mask refinement returned invalid masks")
+            ref_mask = [bool(value) for value in refined_ref]
+            candidate_mask = [bool(value) for value in refined_candidate]
+        except Exception as exc:
+            refinement_device = None
+            refinement_error = exc.__class__.__name__
     intersection = sum(a and b for a, b in zip(ref_mask, candidate_mask, strict=True))
     union = sum(a or b for a, b in zip(ref_mask, candidate_mask, strict=True))
     silhouette_iou = intersection / union if union else 1.0
@@ -56,15 +87,43 @@ def _signals(reference: bytes, render: bytes, size: int) -> dict[str, float]:
         sum(abs(a - b) for a, b in zip(left, right, strict=True))
         for left, right in zip(ref, candidate, strict=True)
     ) / (len(ref) * 3 * 255)
+    return (
+        {
+            "silhouette_iou": round(silhouette_iou, 4),
+            "mean_color_distance": round(color_distance, 4),
+            "pixel_difference": round(pixel_difference, 4),
+        },
+        refinement_device,
+        refinement_error,
+    )
+
+
+def _optional_summary(
+    purpose: str,
+    applied_views: list[str],
+    failed_views: dict[str, str],
+    devices: set[str],
+) -> dict:
+    if applied_views and failed_views:
+        status = "partial"
+    elif applied_views:
+        status = "applied"
+    else:
+        status = "unavailable"
     return {
-        "silhouette_iou": round(silhouette_iou, 4),
-        "mean_color_distance": round(color_distance, 4),
-        "pixel_difference": round(pixel_difference, 4),
+        "status": status,
+        "purpose": purpose,
+        "applied_views": sorted(applied_views),
+        "failed_views": dict(sorted(failed_views.items())),
+        "devices": sorted(devices),
     }
 
 
 def analyze_aligned_views(
-    references: dict[str, bytes], renders: dict[str, bytes], max_image_size: int = 384
+    references: dict[str, bytes],
+    renders: dict[str, bytes],
+    max_image_size: int = 384,
+    optional_runtime: OptionalQualityRuntime | None = None,
 ) -> AnalysisResult:
     """Compare exact known-view matches only; unknown alignment yields no numeric scores."""
     matched = sorted(set(references) & set(renders) & set(KNOWN_VIEWS))
@@ -83,23 +142,56 @@ def analyze_aligned_views(
             uncertain_views=uncertain or ["all views - camera alignment unavailable"],
         )
 
-    view_metrics: dict[str, dict[str, float]] = {}
+    view_metrics: dict[str, dict[str, float | bool]] = {}
     flags: list[str] = []
     invalid: list[str] = []
+    sam2_applied: list[str] = []
+    sam2_failed: dict[str, str] = {}
+    sam2_devices: set[str] = set()
+    dinov2_applied: list[str] = []
+    dinov2_failed: dict[str, str] = {}
+    dinov2_devices: set[str] = set()
     size = max(128, min(max_image_size, 1024))
     for view in matched:
         try:
-            signals = _signals(references[view], renders[view], size)
+            signals, sam2_device, sam2_error = _signals(
+                references[view],
+                renders[view],
+                size,
+                optional_runtime.sam2_refiner if optional_runtime else None,
+            )
         except (UnidentifiedImageError, OSError, ValueError):
             invalid.append(view)
             continue
-        view_metrics[view] = signals
         if signals["silhouette_iou"] < 0.65:
             flags.append(f"{view}: likely geometry/silhouette mismatch")
         if signals["mean_color_distance"] > 0.18:
             flags.append(f"{view}: likely color mismatch")
         if signals["pixel_difference"] > 0.35:
             flags.append(f"{view}: possible texture/logo/detail mismatch")
+
+        values: dict[str, float | bool] = dict(signals)
+        if optional_runtime and optional_runtime.sam2_refiner:
+            values["sam2_mask_refined"] = sam2_error is None
+            if sam2_error is None and sam2_device:
+                sam2_applied.append(view)
+                sam2_devices.add(sam2_device)
+            else:
+                sam2_failed[view] = sam2_error or "OptionalModelUnavailable"
+
+        if optional_runtime and optional_runtime.dinov2_scorer:
+            try:
+                similarity, device = optional_runtime.dinov2_scorer(
+                    references[view], renders[view], size
+                )
+                if not -1.0 <= similarity <= 1.0:
+                    raise ValueError("DINOv2 cosine similarity is outside its valid range")
+                values["dinov2_cosine_similarity"] = round(similarity, 4)
+                dinov2_applied.append(view)
+                dinov2_devices.add(device)
+            except Exception as exc:
+                dinov2_failed[view] = exc.__class__.__name__
+        view_metrics[view] = values
 
     uncertain.extend(f"{view} - unreadable comparison image" for view in invalid)
     if not view_metrics:
@@ -110,17 +202,39 @@ def analyze_aligned_views(
             uncertain_views=uncertain,
         )
     status = "pass" if not flags and not uncertain else "needs_review"
+    metrics: dict = {
+        "engine": "cpu-interpretable-v1",
+        "aligned_views": list(view_metrics),
+        "views": view_metrics,
+        "flags": flags,
+    }
+    if optional_runtime:
+        optional_metrics: dict[str, dict] = {}
+        if optional_runtime.sam2_refiner:
+            optional_metrics["sam2"] = _optional_summary(
+                "foreground_mask_refinement",
+                sam2_applied,
+                sam2_failed,
+                sam2_devices,
+            )
+        if optional_runtime.dinov2_scorer:
+            dinov2_summary = _optional_summary(
+                "advisory_aligned_view_correspondence",
+                dinov2_applied,
+                dinov2_failed,
+                dinov2_devices,
+            )
+            dinov2_summary["identity_proof"] = False
+            optional_metrics["dinov2"] = dinov2_summary
+        metrics["optional_models"] = optional_metrics
+    notes = (
+        "Advisory aligned-view checks only; they cannot certify product identity or unseen details."
+    )
+    if optional_runtime and optional_runtime.dinov2_scorer:
+        notes += " DINOv2 similarity is an advisory correspondence signal, not identity proof."
     return AnalysisResult(
         status=status,
-        metrics={
-            "engine": "cpu-interpretable-v1",
-            "aligned_views": list(view_metrics),
-            "views": view_metrics,
-            "flags": flags,
-        },
-        notes=(
-            "Advisory aligned-view checks only; they cannot certify product identity "
-            "or unseen details."
-        ),
+        metrics=metrics,
+        notes=notes,
         uncertain_views=uncertain,
     )

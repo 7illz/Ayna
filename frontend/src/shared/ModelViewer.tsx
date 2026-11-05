@@ -1,19 +1,62 @@
-import { Component, Suspense, useEffect, useState } from 'react'
+import { Component, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Canvas, useThree } from '@react-three/fiber'
-import { Center, Float, OrbitControls, useGLTF } from '@react-three/drei'
+import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
 import { RotateCcw, Move, Box, RotateCw, ZoomIn, ZoomOut } from 'lucide-react'
-import { Vector3 } from 'three'
+import { Box3, Vector3 } from 'three'
+import type { Group } from 'three'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 
 type CameraCommand = 'left' | 'right' | 'in' | 'out' | 'reset'
 
 function Model({ url }: { url: string }) {
-  const { scene } = useGLTF(url)
+  const { scene } = useLoader(GLTFLoader, url)
+  const offset = useMemo(() => {
+    const center = new Box3().setFromObject(scene, true).getCenter(new Vector3())
+    return [-center.x, -center.y, -center.z] as [number, number, number]
+  }, [scene])
   return (
-    <Center>
+    <group position={offset}>
       <primitive object={scene} />
-    </Center>
+    </group>
   )
+}
+
+function FloatingPlaceholder() {
+  const group = useRef<Group>(null)
+  useFrame(({ clock }) => {
+    if (!group.current) return
+    const elapsed = clock.elapsedTime * 1.5
+    group.current.rotation.x = Math.cos(elapsed / 4) * 0.35
+    group.current.rotation.y = Math.sin(elapsed / 4) * 0.35
+    group.current.rotation.z = Math.sin(elapsed / 4) * 0.14
+    group.current.position.y = Math.sin(elapsed / 4) * 0.1
+  })
+  return (
+    <group ref={group}>
+      <mesh rotation={[0.2, 0.4, 0.1]}>
+        <octahedronGeometry args={[1.1]} />
+        <meshStandardMaterial color="#869e80" roughness={0.45} metalness={0.15} />
+      </mesh>
+    </group>
+  )
+}
+
+function ViewerControls() {
+  const { camera, gl } = useThree()
+  const controls = useMemo(() => {
+    const next = new OrbitControls(camera, gl.domElement)
+    next.enableDamping = true
+    next.enablePan = true
+    next.minDistance = 2
+    next.maxDistance = 8
+    return next
+  }, [camera, gl])
+  useEffect(() => {
+    return () => controls.dispose()
+  }, [controls])
+  useFrame(() => controls.update(), -1)
+  return null
 }
 
 function CameraRig({ command, sequence }: { command: CameraCommand; sequence: number }) {
@@ -106,16 +149,11 @@ export default function ModelViewer({ url, photo }: { url?: string | null; photo
               {url ? (
                 <Model url={url} />
               ) : (
-                <Float speed={1.5} rotationIntensity={0.35}>
-                  <mesh rotation={[0.2, 0.4, 0.1]}>
-                    <octahedronGeometry args={[1.1]} />
-                    <meshStandardMaterial color="#869e80" roughness={0.45} metalness={0.15} />
-                  </mesh>
-                </Float>
+                <FloatingPlaceholder />
               )}
               <gridHelper args={[20, 20, '#d2d7c9', '#e1e4da']} position={[0, -1.2, 0]} />
               <CameraRig command={cameraCommand} sequence={cameraSequence} />
-              <OrbitControls makeDefault enablePan minDistance={2} maxDistance={8} />
+              <ViewerControls />
             </Canvas>
           </Suspense>
         </ViewerBoundary>

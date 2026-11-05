@@ -318,10 +318,6 @@ export interface components {
             max_image_pixels: number;
             /** Dev Auth Enabled */
             dev_auth_enabled: boolean;
-            /** Quality Device */
-            quality_device: string;
-            /** Quality Optional Models Enabled */
-            quality_optional_models_enabled: boolean;
         };
         /** Body_upload_images_api_v1_products__product_id__images_post */
         Body_upload_images_api_v1_products__product_id__images_post: {

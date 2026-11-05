@@ -1,11 +1,11 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import { Plus, ArrowRight, Box, Images, Sparkles, CheckCheck, RefreshCw } from 'lucide-react'
 import { api, assetUrl } from '../../shared/api'
 import type { Config, Job, Product, Quality } from '../../shared/api'
 import { CreateProduct } from './CreateProduct'
 import { ReviewPanel } from '../review/ReviewPanel'
+import { LazyModelViewer as ModelViewer } from '../../shared/LazyModelViewer'
 
-const ModelViewer = lazy(() => import('../../shared/ModelViewer'))
 const label = (value: string) => value.replaceAll('_', ' ')
 
 export function Studio({ config }: { config: Config }) {

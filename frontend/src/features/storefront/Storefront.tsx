@@ -1,9 +1,8 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { ShoppingBag, ArrowUpRight } from 'lucide-react'
 import { api, assetUrl } from '../../shared/api'
 import type { PublicProduct } from '../../shared/api'
-
-const ModelViewer = lazy(() => import('../../shared/ModelViewer'))
+import { LazyModelViewer as ModelViewer } from '../../shared/LazyModelViewer'
 
 export function Storefront() {
   const [products, setProducts] = useState<PublicProduct[]>([])
