@@ -6,9 +6,10 @@ from sqlalchemy import select, update
 
 from app.common.config import get_settings
 from app.common.db import SessionLocal
-from app.common.models import GenerationJob, Product, QualityReport, now
+from app.common.models import GenerationJob, Product, now
 from app.common.storage import get_storage
 from app.modules.generation.providers import MockProvider
+from app.modules.quality.service import build_quality_artifacts
 
 logger = logging.getLogger(__name__)
 
@@ -40,23 +41,37 @@ def process_job(job_id: str) -> None:
             if not result.glb.startswith(b"glTF"):
                 raise ValueError("Invalid model")
             key = f"models/{job.id}/dummy.glb"
-            get_storage().put(key, result.glb, "model/gltf-binary")
+            storage = get_storage()
+            storage.put(key, result.glb, "model/gltf-binary")
+            quality = build_quality_artifacts(
+                product,
+                job,
+                model_glb=result.glb,
+                # The mock octahedron is intentionally unrelated to uploaded photos.
+                evaluate_rendered_views=False,
+            )
+            render_keys: dict[str, str] = {}
+            render_storage_failures: dict[str, str] = {}
+            for view, png in quality.rendered_views.items():
+                render_key = f"models/{job.id}/quality/{view}.png"
+                try:
+                    storage.put(render_key, png, "image/png")
+                    render_keys[view] = render_key
+                except Exception as exc:
+                    logger.warning("Could not store %s quality render for job %s", view, job.id)
+                    render_storage_failures[view] = exc.__class__.__name__
             job.model_key = key
-            job.provenance = result.metadata
+            job.provenance = {
+                **result.metadata,
+                "quality_rendering": quality.render_metadata,
+                "quality_render_keys": render_keys,
+                "quality_render_storage_failures": render_storage_failures,
+            }
             job.status, job.progress, job.finished_at = "succeeded", 100, now()
             product.publish_status = "needs_review"
-            db.add(
-                QualityReport(
-                    product_id=product.id,
-                    job_id=job.id,
-                    status="not_evaluated",
-                    metrics={},
-                    notes=(
-                        "Dummy fixture: photo fidelity cannot be evaluated. Seller review required."
-                    ),
-                    uncertain_views=["all views — dummy geometry; no camera alignment"],
-                )
-            )
+            # Deterministic screenshots are useful for inspection, but mock geometry has no
+            # correspondence to the seller photos and therefore stays not_evaluated.
+            db.add(quality.report)
             db.commit()
         except Exception:
             logger.exception("Mock generation failed for job %s", job_id)

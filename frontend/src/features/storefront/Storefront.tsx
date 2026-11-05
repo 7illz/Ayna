@@ -1,21 +1,32 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { ShoppingBag, ArrowUpRight } from 'lucide-react'
 import { api, assetUrl } from '../../shared/api'
 import type { PublicProduct } from '../../shared/api'
-
-const ModelViewer = lazy(() => import('../../shared/ModelViewer'))
+import { LazyModelViewer as ModelViewer } from '../../shared/LazyModelViewer'
 
 export function Storefront() {
   const [products, setProducts] = useState<PublicProduct[]>([])
   const [selected, setSelected] = useState<PublicProduct | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [detailLoading, setDetailLoading] = useState(false)
   useEffect(() => {
     api<PublicProduct[]>('/store/products')
       .then(setProducts)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
+  async function openProduct(product: PublicProduct) {
+    setDetailLoading(true)
+    setError('')
+    try {
+      setSelected(await api<PublicProduct>(`/store/products/${product.id}`))
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setDetailLoading(false)
+    }
+  }
   return (
     <>
       <div className="page-heading">
@@ -46,7 +57,12 @@ export function Storefront() {
       ) : (
         <div className="store-grid">
           {products.map((p) => (
-            <button className="store-card" key={p.id} onClick={() => setSelected(p)}>
+            <button
+              className="store-card"
+              key={p.id}
+              onClick={() => openProduct(p)}
+              aria-label={`Open ${p.name} 3D preview`}
+            >
               {p.images[0] && <img src={assetUrl(p.images[0].url)} alt={p.name} />}
               <div>
                 <span className="eyebrow">{p.category}</span>
@@ -60,6 +76,7 @@ export function Storefront() {
           ))}
         </div>
       )}
+      {detailLoading && <p role="status">Loading product details...</p>}
       {selected && (
         <section className="store-detail">
           <div className="section-heading">
@@ -75,7 +92,8 @@ export function Storefront() {
             />
           </Suspense>
           <p className="disclosure">{selected.disclosure}</p>
-          <div className="photo-strip">
+          <h3 className="gallery-heading">Original seller photographs</h3>
+          <div className="photo-strip" aria-label="Original product photo gallery">
             {selected.images.map((i) => (
               <img key={i.id} src={assetUrl(i.url)} alt={`${selected.name}, ${i.view_tag} view`} />
             ))}

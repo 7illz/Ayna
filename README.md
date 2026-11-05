@@ -5,8 +5,10 @@ Fiber; FastAPI/Pydantic/SQLAlchemy/Alembic; PostgreSQL, Redis/RQ and private Min
 Create products, upload 2–5 photos, generate a deterministic **dummy GLB**, review it, and
 explore approved previews in the storefront. No GPU, model weights or paid API keys.
 
-This bootstrap does not reconstruct products photorealistically. Hosted AI adapters,
-virtual try-on, payments, production identity and optional vision models are later work.
+This prototype does not reconstruct products photorealistically. Hosted AI adapters,
+virtual try-on, payments and production identity remain later work. Dev2 adds CPU-safe
+aligned-view quality signals plus opt-in local SAM 2/DINOv2 adapter boundaries; no model
+weights are included or downloaded automatically.
 
 ## Windows setup
 
@@ -16,9 +18,9 @@ from a pinned upstream commit because the former official community images are u
 The initial build needs internet; installed mock generation never contacts a provider.
 
 ```powershell
-git clone https://github.com/RafiALMahmud/Ayna.git
+git clone https://github.com/7illz/Ayna.git
 cd Ayna
-git switch chore/bootstrap # main after the bootstrap is reviewed and merged
+git switch main
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 docker compose up --build -d --wait --wait-timeout 240
 docker compose ps
@@ -124,7 +126,9 @@ npm run types:api
 - `backend/app/modules/quality/`, `public_catalog/`, review and storefront UI: Dev2 starters.
 - `backend/app/common/`: models, schemas, settings, auth, storage and response views.
 - `backend/migrations/`: explicit reversible migration; no runtime `create_all`.
-- `worker/`: optional future inference adapter boundary; no SAM 2/DINOv2/CUDA dependency.
+- `worker/`: CPU-safe quality boundary with optional isolated SAM 2/DINOv2 loaders.
+- `scripts/check_gpu.py`: reports NVIDIA/PyTorch capability without requiring PyTorch.
+- `docs/DEV2_QUALITY_STOREFRONT.md`: CPU analysis and opt-in RTX 4050 configuration.
 - `backend/fixtures/dummy.glb`: original CC0 fixture; see `docs/ASSET_LICENSES.md`.
 
 `VITE_API_BASE_URL` configures the browser API origin. `CORS_ORIGINS` is an explicit JSON
@@ -134,7 +138,8 @@ public local-development defaults. The original kit README is in `docs/DEVELOPER
 
 ## Limits
 
-Mock geometry is unrelated to products. Quality scores are unknown, not fabricated.
+Mock geometry is unrelated to products. Quality scores are unknown when camera views cannot
+be aligned and are never fabricated.
 Shirts/pants are experimental and photographs remain authoritative. No guaranteed 360°
 fidelity from 2–5 photos. The viewer falls back to photos on unavailable WebGL/broken GLB;
 it uses no remote HDR maps/fonts/assets. Full CRUD editing/removal, paid adapters and

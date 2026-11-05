@@ -25,6 +25,9 @@ def approved(db, product_id: str) -> Product:
     product = db.get(Product, product_id)
     if product is None or product.publish_status != "approved":
         raise HTTPException(404, "Product not found")
+    job = latest_job(db, product.id)
+    if not job or job.status != "succeeded" or not job.model_key:
+        raise HTTPException(404, "Product not found")
     return product
 
 
@@ -44,7 +47,7 @@ def public_product(db, product: Product) -> PublicProduct:
             for i in product.images
         ],
         model_asset_url=f"/api/v1/store/products/{product.id}/model"
-        if job and job.model_key
+        if job and job.status == "succeeded" and job.model_key
         else None,
         disclosure=DISCLOSURE,
     )
@@ -53,7 +56,12 @@ def public_product(db, product: Product) -> PublicProduct:
 @router.get("/store/products", response_model=list[PublicProduct])
 def store_products(db=Depends(get_db)):
     products = db.scalars(select(Product).where(Product.publish_status == "approved").limit(100))
-    return [public_product(db, p) for p in products]
+    published = []
+    for product in products:
+        job = latest_job(db, product.id)
+        if job and job.status == "succeeded" and job.model_key:
+            published.append(public_product(db, product))
+    return published
 
 
 @router.get("/store/products/{product_id}", response_model=PublicProduct)

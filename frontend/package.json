@@ -13,7 +13,6 @@
     "types:api": "openapi-typescript ../docs/openapi.json -o src/shared/api-schema.d.ts"
   },
   "dependencies": {
-    "@react-three/drei": "10.7.9",
     "@react-three/fiber": "9.8.2",
     "lucide-react": "1.66.0",
     "react": "19.3.1",
