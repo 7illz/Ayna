@@ -40,7 +40,7 @@ commits are preserved, not squashed into falsely attributed replacement code.
 - [x] Read the original kit, D2's retrieved `03_CODEX_DEV2.md`, shared contracts,
   implementation reports and current source. Historical reports remain attributed
   evidence, not new execution claims.
-- [x] Re-audited `AYNA_FEATURE_CHECKLIST.md`: **59 items; 49 complete, 10 partial,
+- [x] Re-audited `AYNA_FEATURE_CHECKLIST.md`: **59 items; 50 complete, 9 partial,
   0 missing, 0 known broken**. Partial means an implemented boundary still lacks live
   provider/tool/model acceptance; it is not relabeled complete.
 - [x] Preserved the user's regular-commerce scope: 3D is optional; clothing/shoe try-on

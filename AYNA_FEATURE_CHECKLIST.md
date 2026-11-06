@@ -5,7 +5,7 @@ Evidence: reviewed source, merged histories, automated tests and the execution r
 `[!]` implemented but broken. Tests listed here are actual test files, not proof of live
 hosted inference. No feature is complete merely because a module exists.
 
-**59 audited items: 49 complete, 10 partial, 0 missing, 0 known broken.** Real SAM 2 and
+**59 audited items: 50 complete, 9 partial, 0 missing, 0 known broken.** Real SAM 2 and
 DINOv2 Small inference ran locally on the RTX 4050. Tripo, Blender, OpenCV quality and
 try-on remain partial for the precise live-validation reasons shown below.
 
@@ -80,7 +80,7 @@ follows actual commit content, not the branch names promised in the kit.
 | [x] | PostgreSQL/migrations — D1/D2/INT | Alembic revisions | Merge revision joins commerce and review-audit heads without rewriting history; fresh/upgrade/drift validation. |
 | [x] | Redis/background jobs — D1/INT | RQ/worker/Compose | Linux Compose live smoke; bounded worker timeout and idle health heartbeat. |
 | [x] | Configured local/private storage — D1 | `common/storage.py`, MinIO | Path safety/signatures/real MinIO smoke. R2 uses the S3 adapter but no real R2 account was tested. |
-| [~] | Docker Compose — D1/D2/INT | `compose.yaml` | Prior integrated main passed Linux Compose. This branch could not run/configure containers because this host lacks WSL, a daemon and the Compose plugin; new migration/env/try-on worker changes need CI/container validation. |
+| [x] | Docker Compose — D1/D2/INT | `compose.yaml` | Exact PR head passed GitHub Linux `docker compose config`, build/wait, PostgreSQL/Redis/RQ/MinIO generation/publication smoke, commerce smoke and Playwright. Local Windows remains blocked by missing WSL/daemon/plugin. |
 | [x] | Environment configuration — D1/D2/INT | config, `.env.example`, Compose | Production/hosted-provider/optional-model guard tests; credentials kept server-side. |
 | [x] | Automated tests — D1/D2/INT | backend tests, frontend tests/e2e, CI | See exact commands and final counts in `AYNA_TEST_REPORT.md`. |
 | [x] | API documentation — D1/INT | schemas/OpenAPI/TS types | Generated artifacts, route uniqueness and schema drift checks; additive contract changes documented. |

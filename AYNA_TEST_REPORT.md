@@ -40,12 +40,18 @@ Hugging Face revision `ed25f3a31f01632728cabb09d1542f84ab7b0056`. Both projects 
 Apache-2.0. Model weights, customer photos and credentials are untracked.
 
 Not executed on this branch: paid Meshy/Tripo requests or visual fidelity comparison,
-real Blender/bpy optimization, a real try-on model/provider, current Docker/PostgreSQL/
-Redis/RQ/MinIO workflow, Playwright browser journeys, real Stripe/SMTP/carrier services,
-or a second physical PC. Reasons are respectively absent spending authorization/keys,
-missing Blender, no approved try-on model, missing WSL/daemon/Compose plugin, and absent
-external infrastructure. The earlier integrated-main Docker/Playwright results below are
-historical evidence only, not proof of this branch.
+real Blender/bpy optimization, a real try-on model/provider, local Windows Docker execution,
+real Stripe/SMTP/carrier services, or a second physical PC. Reasons are respectively absent
+spending authorization/keys, missing Blender, no approved try-on model, missing local
+WSL/daemon/Compose plugin, and absent external infrastructure.
+
+GitHub Actions run `42298719303` on commit `73840bb` supplied current Linux container
+evidence: backend PASS (1m34s), frontend PASS (42s), and Compose smoke PASS (4m23s).
+The Compose job executed config validation, full build/wait, migrations/startup,
+PostgreSQL/Redis/RQ/MinIO mock generation/publication/revocation smoke, commerce smoke and
+Playwright desktop/mobile journeys, then retained browser artifacts and stopped containers.
+This is exact-branch CI evidence, not a second physical-PC claim. The local Windows Docker
+blocker remains accurately recorded above.
 
 Run in `E:\Ayna-integration` on Windows 11, Python 3.12.6, Node 22 and Chromium.
 This is one host plus independently executed GitHub Linux CI, not two physical laptop
