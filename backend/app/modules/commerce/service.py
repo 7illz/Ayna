@@ -33,7 +33,7 @@ from app.modules.commerce.schemas import (
     StoreConfig,
     VariantOut,
 )
-from app.modules.generation.providers import DISCLOSURE
+from app.modules.generation.providers import disclosure
 from app.modules.generation.tasks import latest_job
 
 DEFAULT_CATEGORIES = {
@@ -160,7 +160,7 @@ def product_view(db, product: Product, private=False) -> ShopProduct:
         is_archived=product.is_archived,
         featured=product.featured,
         model_asset_url=model_url,
-        model_disclosure=DISCLOSURE if model_url else None,
+        model_disclosure=disclosure(job.provider) if model_url and job else None,
         try_on_eligible=product.category in {"shirts", "pants", "shoes"},
     )
 

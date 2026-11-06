@@ -8,7 +8,7 @@ from app.common.models import Product, ProductImage
 from app.common.schemas import PublicImage, PublicProduct
 from app.common.storage import get_storage
 from app.modules.commerce.models import User
-from app.modules.generation.providers import DISCLOSURE
+from app.modules.generation.providers import disclosure
 from app.modules.generation.tasks import latest_job
 
 router = APIRouter(tags=["Public storefront"])
@@ -58,7 +58,7 @@ def public_product(db, product: Product) -> PublicProduct:
         model_asset_url=f"/api/v1/store/products/{product.id}/model"
         if job and job.status == "succeeded" and job.model_key
         else None,
-        disclosure=DISCLOSURE,
+        disclosure=disclosure(job.provider if job else "mock"),
     )
 
 

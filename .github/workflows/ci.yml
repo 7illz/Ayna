@@ -1,7 +1,7 @@
 name: Ayna checks
 on:
   push:
-    branches: [main, chore/bootstrap, 'feat/**', 'test/**']
+    branches: [main, chore/bootstrap, 'feat/**', 'test/**', 'integration/**']
   pull_request:
 permissions:
   contents: read

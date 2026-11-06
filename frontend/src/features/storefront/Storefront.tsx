@@ -87,6 +87,7 @@ export function Storefront() {
           </div>
           <Suspense fallback={<div className="viewer-fallback">Loading viewer…</div>}>
             <ModelViewer
+              mock={selected.disclosure.includes('Dummy mock')}
               url={selected.model_asset_url ? assetUrl(selected.model_asset_url) : null}
               photo={selected.images[0] ? assetUrl(selected.images[0].url) : undefined}
             />

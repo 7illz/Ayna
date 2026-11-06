@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -57,6 +58,15 @@ class ProductOut(BaseModel):
     publish_status: PublishStatus
 
 
+class ImagePlacement(BaseModel):
+    id: UUID
+    view_tag: Literal["front", "left", "right", "side", "back", "detail", "unspecified"]
+
+
+class ImageOrderIn(BaseModel):
+    images: list[ImagePlacement] = Field(min_length=1, max_length=5)
+
+
 class JobOut(BaseModel):
     id: UUID
     product_id: UUID
@@ -112,6 +122,7 @@ class AppConfig(BaseModel):
     max_image_bytes: int
     max_image_pixels: int
     dev_auth_enabled: bool
+    seller_authenticated: bool = False
 
 
 class HealthOut(BaseModel):

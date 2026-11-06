@@ -11,7 +11,12 @@ class Settings(BaseSettings):
     environment: Literal["development", "production", "test"] = "development"
     database_url: str = "sqlite:///./.data/ayna.db"
     redis_url: str = "redis://localhost:6379/0"
-    ai_provider: Literal["mock"] = "mock"
+    ai_provider: Literal["mock", "meshy"] = "mock"
+    meshy_api_key: str = ""
+    meshy_daily_request_limit: int = Field(default=0, ge=0, le=100)
+    generation_seller_daily_limit: int = Field(default=20, ge=1, le=100)
+    meshy_poll_seconds: int = Field(default=10, ge=1, le=30)
+    meshy_timeout_seconds: int = Field(default=900, ge=30, le=1800)
     queue_mode: Literal["rq", "inline"] = "rq"
     storage_backend: Literal["local", "s3"] = "local"
     local_storage_path: str = ".data/assets"
@@ -52,6 +57,11 @@ class Settings(BaseSettings):
     def guard_production(self) -> "Settings":
         if self.min_images > self.max_images:
             raise ValueError("min_images must not exceed max_images")
+        if self.ai_provider == "meshy":
+            if not self.meshy_api_key or not self.meshy_daily_request_limit:
+                raise ValueError("Meshy requires a server key and a positive daily request cap")
+            if self.queue_mode != "rq":
+                raise ValueError("Hosted generation requires the background RQ worker")
         if self.environment == "production":
             if self.demo_payments_enabled:
                 raise ValueError("Demo payments are forbidden in production")

@@ -44,7 +44,8 @@ def review_product(
     product.publish_status = "approved" if body.decision == "approve" else "rejected"
     report.reviewed_by, report.reviewed_at = owner, now()
     seller_note = body.notes.strip()
-    report.notes = f"{report.notes} Seller review: {seller_note or 'No additional notes.'}"
+    analysis_note = report.notes.split(" Seller review:", 1)[0][:900]
+    report.notes = f"{analysis_note} Seller review: {seller_note or 'No additional notes.'}"
     db.add(
         ReviewAudit(
             product_id=product.id,

@@ -1,4 +1,4 @@
-"""CPU-only deterministic mock; intentionally no hosted provider enabled in bootstrap."""
+"""Provider contracts and the CPU-only deterministic mock."""
 
 import json
 import struct
@@ -8,6 +8,17 @@ from typing import Protocol
 DISCLOSURE = (
     "Dummy mock model — not a reconstruction. AI-generated 3D preview; unseen views are inferred."
 )
+
+
+def disclosure(provider: str) -> str:
+    return (
+        DISCLOSURE
+        if provider == "mock"
+        else (
+            "AI-generated 3D preview, not a scan. Unseen views are inferred; "
+            "product fidelity is not certified. Original seller photographs are authoritative."
+        )
+    )
 
 
 @dataclass(frozen=True)

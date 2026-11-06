@@ -14,6 +14,7 @@ const config: Config = {
   max_image_bytes: 10485760,
   max_image_pixels: 20000000,
   dev_auth_enabled: true,
+  seller_authenticated: false,
 }
 
 test('Ayna studio connects, opens upload dialog, and navigates to approved storefront', async () => {

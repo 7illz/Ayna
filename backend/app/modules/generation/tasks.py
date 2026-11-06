@@ -8,6 +8,7 @@ from app.common.config import get_settings
 from app.common.db import SessionLocal
 from app.common.models import GenerationJob, Product, now
 from app.common.storage import get_storage
+from app.modules.generation.meshy import MeshyProvider, ProviderError, select_views, validate_glb
 from app.modules.generation.providers import MockProvider
 from app.modules.quality.service import build_quality_artifacts
 
@@ -37,10 +38,26 @@ def process_job(job_id: str) -> None:
             product = db.get(Product, job.product_id)
             if product is None:
                 raise ValueError("Product missing")
-            result = MockProvider().generate([i.storage_key for i in product.images])
-            if not result.glb.startswith(b"glTF"):
-                raise ValueError("Invalid model")
-            key = f"models/{job.id}/dummy.glb"
+
+            def submitted(task_id: str):
+                job.provenance = {"provider_task_id": task_id, "provider": "meshy"}
+                db.commit()
+
+            def progress(value: int):
+                job.progress = value
+                db.commit()
+
+            if job.provider == "mock":
+                result = MockProvider().generate([i.storage_key for i in product.images])
+            elif job.provider == "meshy":
+                result = MeshyProvider(submitted=submitted, progress=progress).generate(
+                    [i.storage_key for i in select_views(product.images)]
+                )
+            else:
+                raise ProviderError("PROVIDER_NOT_CONFIGURED")
+            validate_glb(result.glb)
+            filename = "dummy.glb" if job.provider == "mock" else "model.glb"
+            key = f"models/{job.id}/{filename}"
             storage = get_storage()
             storage.put(key, result.glb, "model/gltf-binary")
             quality = build_quality_artifacts(
@@ -48,7 +65,7 @@ def process_job(job_id: str) -> None:
                 job,
                 model_glb=result.glb,
                 # The mock octahedron is intentionally unrelated to uploaded photos.
-                evaluate_rendered_views=False,
+                evaluate_rendered_views=job.provider != "mock",
             )
             render_keys: dict[str, str] = {}
             render_storage_failures: dict[str, str] = {}
@@ -63,6 +80,7 @@ def process_job(job_id: str) -> None:
             job.model_key = key
             job.provenance = {
                 **result.metadata,
+                "input_image_ids": [image.id for image in product.images],
                 "quality_rendering": quality.render_metadata,
                 "quality_render_keys": render_keys,
                 "quality_render_storage_failures": render_storage_failures,
@@ -73,15 +91,16 @@ def process_job(job_id: str) -> None:
             # correspondence to the seller photos and therefore stays not_evaluated.
             db.add(quality.report)
             db.commit()
-        except Exception:
-            logger.exception("Mock generation failed for job %s", job_id)
+        except Exception as exc:
+            # Do not log provider responses, URLs, uploaded photographs or credentials.
+            logger.error("Generation failed for job %s (%s)", job_id, type(exc).__name__)
             db.rollback()
             db.execute(
                 update(GenerationJob)
                 .where(GenerationJob.id == job_id)
                 .values(
                     status="failed",
-                    error_code="GENERATION_FAILED",
+                    error_code=str(exc) if isinstance(exc, ProviderError) else "GENERATION_FAILED",
                     finished_at=now(),
                     model_key=None,
                 )

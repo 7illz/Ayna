@@ -19,7 +19,14 @@ and private MinIO storage. Local mock AI needs no GPU or paid API keys.
 
 Products can be sold without generating a 3D model. The separate product studio retains
 its reviewed, explicitly labeled **dummy GLB** workflow. Photorealistic reconstruction
-and clothing/shoe try-on are not implemented by the mock provider.
+has an explicitly enabled Meshy adapter, tested with simulated HTTP responses but not
+a paid live task. Photorealistic accuracy is unverified. Clothing/shoe try-on remains
+unimplemented; the mock provider never reconstructs the uploaded product.
+
+Integration audit and operating instructions:
+[feature checklist](AYNA_FEATURE_CHECKLIST.md), [integration report](AYNA_INTEGRATION_REPORT.md),
+[executed test report](AYNA_TEST_REPORT.md), [both-PC instructions](AYNA_BOTH_PC_TESTING.md).
+The integrated branch preserves the regular shop and Developer 2's quality/viewer work.
 
 ## Run locally on Windows
 

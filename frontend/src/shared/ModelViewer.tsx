@@ -11,13 +11,21 @@ type CameraCommand = 'left' | 'right' | 'in' | 'out' | 'reset'
 
 function Model({ url }: { url: string }) {
   const { scene } = useLoader(GLTFLoader, url)
-  const offset = useMemo(() => {
-    const center = new Box3().setFromObject(scene, true).getCenter(new Vector3())
-    return [-center.x, -center.y, -center.z] as [number, number, number]
+  const bounds = useMemo(() => {
+    const box = new Box3().setFromObject(scene, true)
+    const center = box.getCenter(new Vector3())
+    const size = box.getSize(new Vector3())
+    const longest = Math.max(size.x, size.y, size.z)
+    return {
+      offset: [-center.x, -center.y, -center.z] as [number, number, number],
+      scale: Number.isFinite(longest) && longest > 0 ? 2 / longest : 1,
+    }
   }, [scene])
   return (
-    <group position={offset}>
-      <primitive object={scene} />
+    <group scale={bounds.scale}>
+      <group position={bounds.offset}>
+        <primitive object={scene} />
+      </group>
     </group>
   )
 }
@@ -99,7 +107,15 @@ function supportsWebGL() {
   }
 }
 
-export default function ModelViewer({ url, photo }: { url?: string | null; photo?: string }) {
+export default function ModelViewer({
+  url,
+  photo,
+  mock = false,
+}: {
+  url?: string | null
+  photo?: string
+  mock?: boolean
+}) {
   const [reset, setReset] = useState(0)
   const [cameraCommand, setCameraCommand] = useState<CameraCommand>('reset')
   const [cameraSequence, setCameraSequence] = useState(0)
@@ -127,7 +143,7 @@ export default function ModelViewer({ url, photo }: { url?: string | null; photo
     <div className="viewer" aria-label="Interactive 3D product preview">
       <span className="viewer-label">
         <span />
-        {url ? 'AI-GENERATED 3D PREVIEW' : 'STUDIO PREVIEW'}
+        {url ? (mock ? 'DUMMY MODEL · MOCK' : 'AI-GENERATED 3D PREVIEW') : 'STUDIO PREVIEW'}
       </span>
       {webgl ? (
         <ViewerBoundary key={`${url}-${reset}`} fallback={fallback}>
@@ -146,11 +162,7 @@ export default function ModelViewer({ url, photo }: { url?: string | null; photo
             >
               <ambientLight intensity={1.5} />
               <directionalLight position={[4, 6, 2]} intensity={3} />
-              {url ? (
-                <Model url={url} />
-              ) : (
-                <FloatingPlaceholder />
-              )}
+              {url ? <Model url={url} /> : <FloatingPlaceholder />}
               <gridHelper args={[20, 20, '#d2d7c9', '#e1e4da']} position={[0, -1.2, 0]} />
               <CameraRig command={cameraCommand} sequence={cameraSequence} />
               <ViewerControls />
@@ -165,19 +177,39 @@ export default function ModelViewer({ url, photo }: { url?: string | null; photo
           <Move size={14} /> Drag to rotate or pan. Scroll to zoom.
         </span>
         <div className="viewer-buttons" aria-label="3D view controls">
-          <button className="icon-button" aria-label="Rotate 3D view left" onClick={() => moveCamera('left')}>
+          <button
+            className="icon-button"
+            aria-label="Rotate 3D view left"
+            onClick={() => moveCamera('left')}
+          >
             <RotateCcw size={16} />
           </button>
-          <button className="icon-button" aria-label="Rotate 3D view right" onClick={() => moveCamera('right')}>
+          <button
+            className="icon-button"
+            aria-label="Rotate 3D view right"
+            onClick={() => moveCamera('right')}
+          >
             <RotateCw size={16} />
           </button>
-          <button className="icon-button" aria-label="Zoom 3D view in" onClick={() => moveCamera('in')}>
+          <button
+            className="icon-button"
+            aria-label="Zoom 3D view in"
+            onClick={() => moveCamera('in')}
+          >
             <ZoomIn size={16} />
           </button>
-          <button className="icon-button" aria-label="Zoom 3D view out" onClick={() => moveCamera('out')}>
+          <button
+            className="icon-button"
+            aria-label="Zoom 3D view out"
+            onClick={() => moveCamera('out')}
+          >
             <ZoomOut size={16} />
           </button>
-          <button className="icon-button" aria-label="Reset 3D view" onClick={() => moveCamera('reset')}>
+          <button
+            className="icon-button"
+            aria-label="Reset 3D view"
+            onClick={() => moveCamera('reset')}
+          >
             <RotateCcw size={16} />
           </button>
         </div>

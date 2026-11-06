@@ -399,6 +399,7 @@ export function ProductDetail({ id }: { id: string }) {
             {show3d && p.model_asset_url ? (
               <Suspense fallback={<Loading />}>
                 <ModelViewer
+                  mock={p.model_disclosure?.includes('Dummy mock')}
                   url={assetUrl(p.model_asset_url)}
                   photo={p.images[0] ? assetUrl(p.images[0].url) : undefined}
                 />

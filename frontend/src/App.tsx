@@ -51,9 +51,14 @@ export function StudioApp() {
           <div className="mock-card">
             <Layers3 size={22} />
             <h3>A space to experiment.</h3>
-            <p>Explore the complete workflow with a free, deterministic mock provider.</p>
+            <p>
+              {config?.provider === 'meshy'
+                ? 'Hosted reconstruction is enabled. New generation requests use credits.'
+                : 'Explore the complete workflow with a free, deterministic mock provider.'}
+            </p>
             <span>
-              <span className="status-dot" /> Mock mode is on
+              <span className="status-dot" />{' '}
+              {config?.provider === 'meshy' ? 'Meshy enabled' : 'Mock mode is on'}
             </span>
           </div>
           <a className="docs-link" href={`${API_BASE}/docs`} target="_blank" rel="noreferrer">
@@ -63,7 +68,12 @@ export function StudioApp() {
           <div className="profile">
             <span className="profile-avatar">D1</span>
             <div>
-              Demo seller<small>Local development account</small>
+              {config?.seller_authenticated ? 'Seller account' : 'Demo seller'}
+              <small>
+                {config?.seller_authenticated
+                  ? 'Authenticated workspace'
+                  : 'Local development account'}
+              </small>
             </div>
           </div>
         </div>

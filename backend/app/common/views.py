@@ -3,7 +3,7 @@ from uuid import UUID
 from app.common.models import GenerationJob, Product
 from app.common.schemas import JobOut, JobStatus, ProductImageOut, ProductOut, PublishStatus
 from app.common.storage import asset_url
-from app.modules.generation.providers import DISCLOSURE
+from app.modules.generation.providers import disclosure
 
 
 def product_out(product: Product) -> ProductOut:
@@ -41,6 +41,10 @@ def job_out(job: GenerationJob, owner: str) -> JobOut:
         finished_at=job.finished_at,
         error_code=job.error_code,
         model_asset_url=asset_url("model", job.id, owner) if job.model_key else None,
-        preview_asset_urls=[],
-        disclosure=DISCLOSURE,
+        preview_asset_urls=[
+            asset_url(f"render-{view}", job.id, owner)
+            for view in ("front", "left", "right", "back")
+            if view in job.provenance.get("quality_render_keys", {}) and job.status == "succeeded"
+        ],
+        disclosure=disclosure(job.provider),
     )

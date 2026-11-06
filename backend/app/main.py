@@ -11,6 +11,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.common.config import get_settings
 from app.common.db import get_db
+from app.common.identity import optional_user
 from app.common.models import GenerationJob, Product, ProductImage
 from app.common.schemas import AppConfig, ErrorOut, HealthOut
 from app.common.storage import get_storage, verify_asset
@@ -123,7 +124,7 @@ def ready(db=Depends(get_db)):
 
 
 @app.get("/api/v1/config", response_model=AppConfig)
-def config():
+def config(user=Depends(optional_user)):
     return AppConfig(
         provider=settings.ai_provider,
         min_images=settings.min_images,
@@ -131,6 +132,7 @@ def config():
         max_image_bytes=settings.max_image_bytes,
         max_image_pixels=settings.max_image_pixels,
         dev_auth_enabled=settings.dev_auth_enabled,
+        seller_authenticated=bool(user and user.role in {"seller", "admin"}),
     )
 
 
@@ -148,6 +150,14 @@ def private_asset(
         resource = db.get(GenerationJob, str(asset_id))
         key = resource.model_key if resource and resource.status == "succeeded" else None
         media_type = "model/gltf-binary"
+    elif kind in {"render-front", "render-left", "render-right", "render-back"}:
+        resource = db.get(GenerationJob, str(asset_id))
+        key = (
+            resource.provenance.get("quality_render_keys", {}).get(kind[7:])
+            if resource and resource.status == "succeeded"
+            else None
+        )
+        media_type = "image/png"
     else:
         raise HTTPException(404, "Asset not found")
     product = db.get(Product, resource.product_id) if resource else None

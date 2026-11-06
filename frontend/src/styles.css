@@ -616,6 +616,18 @@ main {
   gap: 5px;
   pointer-events: auto;
 }
+.view-labels {
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid #d2d7c9;
+}
+.view-labels label {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px;
+  font-size: 12px;
+}
 .viewer-disclosure {
   position: absolute;
   z-index: 2;

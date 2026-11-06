@@ -11,7 +11,7 @@ from app.common.auth import seller_id
 from app.common.config import get_settings
 from app.common.db import get_db
 from app.common.models import Product, ProductImage, new_id
-from app.common.schemas import ProductCreate, ProductOut
+from app.common.schemas import ImageOrderIn, ProductCreate, ProductOut
 from app.common.storage import get_storage
 from app.common.views import product_out
 
@@ -51,6 +51,31 @@ def list_products(owner: str = Depends(seller_id), db=Depends(get_db)):
 @router.get("/products/{product_id}", response_model=ProductOut)
 def get_product(product_id: UUID, owner: str = Depends(seller_id), db=Depends(get_db)):
     return product_out(owned_product(db, product_id, owner))
+
+
+@router.put("/products/{product_id}/images/order", response_model=ProductOut)
+def order_images(
+    product_id: UUID, body: ImageOrderIn, owner: str = Depends(seller_id), db=Depends(get_db)
+):
+    product = owned_product(db, product_id, owner, lock=True)
+    if product.publish_status == "generating":
+        raise HTTPException(409, "Wait for the current generation to finish")
+    by_id = {image.id: image for image in product.images}
+    ids = [str(image.id) for image in body.images]
+    if len(ids) != len(by_id) or set(ids) != set(by_id):
+        raise HTTPException(422, "Supply every existing photograph exactly once")
+    if (
+        body.images[0].view_tag != "front"
+        or sum(image.view_tag == "front" for image in body.images) != 1
+    ):
+        raise HTTPException(422, "The first photograph must be the only front view")
+    for index, image in enumerate(body.images):
+        by_id[str(image.id)].sort_order = index
+        by_id[str(image.id)].view_tag = image.view_tag
+    product.publish_status = "draft"
+    db.commit()
+    db.refresh(product)
+    return product_out(product)
 
 
 def sanitize_image(data: bytes, content_type: str | None) -> bytes:

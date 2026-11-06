@@ -88,6 +88,27 @@ test('customer shops as a guest, registers, checks out COD, tracks and reviews a
   await expect(
     page.getByRole('heading', { name: 'Wireless over-ear headphones', exact: true }),
   ).toBeVisible()
+  await page
+    .getByRole('button', { name: 'Compare Wireless over-ear headphones', exact: true })
+    .click()
+  await page.goto('/#/compare')
+  await expect(page.getByRole('heading', { name: 'Compare your good finds.' })).toBeVisible()
+  await expect(page.getByRole('cell', { name: 'Available stock', exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Wireless over-ear headphones', exact: true }),
+  ).toBeVisible()
+  await page
+    .getByRole('button', { name: 'Remove Wireless over-ear headphones from comparison' })
+    .click()
+  await expect(page.getByRole('heading', { name: 'A few good options.' })).toBeVisible()
+  await page.goto('/')
+  const recent = page
+    .locator('section')
+    .filter({ has: page.getByRole('heading', { name: 'Recently on your radar.' }) })
+    .last()
+  await expect(
+    recent.getByRole('heading', { name: 'Wireless over-ear headphones', exact: true }),
+  ).toBeVisible()
   await page.goto('/#/support')
   await page.getByLabel('Subject', { exact: true }).fill(`Browser help ${suffix}`)
   await page

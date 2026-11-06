@@ -90,6 +90,33 @@ export function Studio({ config }: { config: Config }) {
     setSelected(product)
     setProducts((all) => all.map((p) => (p.id === product.id ? product : p)))
   }
+  async function labelView(id: string, view: string) {
+    if (!selected) return
+    const images = selected.images.map((image) => ({
+      id: image.id,
+      view_tag:
+        image.id === id
+          ? view
+          : view === 'front' && image.view_tag === 'front'
+            ? 'unspecified'
+            : image.view_tag,
+    }))
+    images.sort((a, b) => Number(b.view_tag === 'front') - Number(a.view_tag === 'front'))
+    setBusy(true)
+    setError('')
+    try {
+      updated(
+        await api<Product>(`/products/${selected.id}/images/order`, {
+          method: 'PUT',
+          body: JSON.stringify({ images }),
+        }),
+      )
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
   return (
     <>
       <div className="page-heading">
@@ -103,7 +130,7 @@ export function Studio({ config }: { config: Config }) {
         <button
           className="button primary"
           onClick={() => setCreating(true)}
-          disabled={!config.dev_auth_enabled}
+          disabled={!config.dev_auth_enabled && !config.seller_authenticated}
         >
           <Plus size={17} /> Add product
         </button>
@@ -249,6 +276,7 @@ export function Studio({ config }: { config: Config }) {
           </div>
           <Suspense fallback={<div className="viewer-fallback">Preparing your studio…</div>}>
             <ModelViewer
+              mock={job?.provider === 'mock'}
               url={job?.model_asset_url ? assetUrl(job.model_asset_url) : null}
               photo={selected?.images[0] ? assetUrl(selected.images[0].url) : undefined}
             />
@@ -258,14 +286,21 @@ export function Studio({ config }: { config: Config }) {
               <span className="status-dot" />
               {job ? `Generation ${job.status} · ${job.progress}%` : 'Ready when you are'}
             </p>
-            <span className="muted small">Mock provider · No credits used</span>
+            <span className="muted small">
+              {config.provider === 'mock'
+                ? 'Mock provider · No credits used'
+                : 'Meshy · Paid provider enabled'}
+            </span>
           </div>
           {job && (job.status === 'queued' || job.status === 'processing') && (
             <progress max="100" value={job.progress} aria-label="Generation progress" />
           )}
           {job?.error_code && (
             <p role="alert" className="error">
-              Generation failed: {job.error_code}. You can retry.
+              Generation failed: {job.error_code}.
+              {job.provider === 'mock'
+                ? ' You can retry.'
+                : ' Check the provider dashboard before retrying; a new request may cost credits.'}
             </p>
           )}
           {selected && (
@@ -280,17 +315,66 @@ export function Studio({ config }: { config: Config }) {
                 ))}
               </div>
               {selected.publish_status !== 'generating' && (
+                <fieldset className="view-labels">
+                  <legend>Photograph directions</legend>
+                  <p className="small muted">
+                    Changing labels revokes 3D approval. Labels describe your photos; they do not
+                    verify camera alignment.
+                  </p>
+                  {selected.images.map((image, index) => (
+                    <label key={image.id}>
+                      Photo {index + 1}
+                      <select
+                        aria-label={`Direction for photo ${index + 1}`}
+                        value={image.view_tag}
+                        disabled={busy}
+                        onChange={(event) => void labelView(image.id, event.target.value)}
+                      >
+                        {['front', 'left', 'right', 'side', 'back', 'detail', 'unspecified'].map(
+                          (view) => (
+                            <option key={view} value={view}>
+                              {view}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </label>
+                  ))}
+                </fieldset>
+              )}
+              {selected.publish_status !== 'generating' && (
                 <button
                   className="button primary"
                   disabled={busy || selected.images.length < config.min_images}
                   onClick={generate}
                 >
                   <Sparkles size={16} />
-                  {busy ? 'Starting…' : 'Generate mock preview'}
+                  {busy
+                    ? 'Starting…'
+                    : config.provider === 'mock'
+                      ? 'Generate mock preview'
+                      : 'Generate with Meshy (uses credits)'}
                 </button>
               )}
               {job?.status === 'succeeded' && selected.publish_status !== 'draft' && (
                 <ReviewPanel product={selected} quality={quality} onReviewed={updated} />
+              )}
+              {!!job?.preview_asset_urls.length && (
+                <div>
+                  <h3>Model inspection renders</h3>
+                  <p className="small muted">
+                    These are generated views, not reference photographs or proof of accuracy.
+                  </p>
+                  <div className="photo-strip">
+                    {job.preview_asset_urls.map((url, index) => (
+                      <img
+                        key={url}
+                        src={assetUrl(url)}
+                        alt={`Generated model inspection view ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                </div>
               )}
             </>
           )}
