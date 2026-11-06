@@ -6,6 +6,32 @@ import { CreateProduct } from './features/seller/CreateProduct'
 import type { Config } from './shared/api'
 
 vi.mock('./shared/ModelViewer', () => ({ default: () => <div>3D preview placeholder</div> }))
+
+test('hosted configuration is labelled paid and authenticated sellers can create products', async () => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async (input: string | URL | Request) =>
+        new Response(
+          JSON.stringify(
+            String(input).endsWith('/config')
+              ? {
+                  ...config,
+                  provider: 'meshy',
+                  dev_auth_enabled: false,
+                  seller_authenticated: true,
+                }
+              : [],
+          ),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+    ),
+  )
+  render(<App />)
+  expect(await screen.findByText('Meshy enabled')).toBeInTheDocument()
+  expect(screen.queryByText('Mock mode is on')).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /^Add product$/ })).toBeEnabled()
+})
 const config: Config = {
   brand: 'Ayna',
   provider: 'mock',

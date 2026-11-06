@@ -50,23 +50,39 @@ export function Studio({ config }: { config: Config }) {
     jobStatus = job?.status
   useEffect(() => {
     if (!selectedId || !jobId) return
+    let active = true
     if (jobStatus === 'succeeded') {
       api<Quality>(`/products/${selectedId}/quality`)
-        .then(setQuality)
-        .catch((e) => setError(e.message))
-      return
+        .then((result) => {
+          if (active) setQuality(result)
+        })
+        .catch((e) => {
+          if (active) setError(e.message)
+        })
+      return () => {
+        active = false
+      }
     }
     if (jobStatus !== 'queued' && jobStatus !== 'processing') return
+    let inFlight = false
     const timer = setInterval(async () => {
+      if (inFlight) return
+      inFlight = true
       try {
         const result = await api<Job>(`/generation-jobs/${jobId}`)
+        if (!active) return
         setJob(result)
         if (result.status === 'succeeded' || result.status === 'failed') await refresh()
       } catch (err) {
-        setError((err as Error).message)
+        if (active) setError((err as Error).message)
+      } finally {
+        inFlight = false
       }
     }, 1000)
-    return () => clearInterval(timer)
+    return () => {
+      active = false
+      clearInterval(timer)
+    }
   }, [selectedId, jobId, jobStatus, refresh])
   async function generate() {
     if (!selected) return
@@ -287,7 +303,7 @@ export function Studio({ config }: { config: Config }) {
               {job ? `Generation ${job.status} · ${job.progress}%` : 'Ready when you are'}
             </p>
             <span className="muted small">
-              {config.provider === 'mock'
+              {(job?.provider || config.provider) === 'mock'
                 ? 'Mock provider · No credits used'
                 : 'Meshy · Paid provider enabled'}
             </span>

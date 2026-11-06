@@ -31,14 +31,26 @@ test('seller uploads, queues, reviews, and opens an approved 3D preview', async 
   await expect(canvas).toBeVisible()
   const beforeRotation = await canvas.screenshot()
   await page.getByRole('button', { name: 'Rotate 3D view left' }).click()
-  await expect.poll(async () => (await canvas.screenshot()).equals(beforeRotation)).toBe(false)
+  await expect
+    .poll(async () => (await canvas.screenshot()).equals(beforeRotation), { timeout: 15000 })
+    .toBe(false)
   const beforeZoom = await canvas.screenshot()
   await page.getByRole('button', { name: 'Zoom 3D view in' }).click()
-  await expect.poll(async () => (await canvas.screenshot()).equals(beforeZoom)).toBe(false)
+  await expect
+    .poll(async () => (await canvas.screenshot()).equals(beforeZoom), { timeout: 15000 })
+    .toBe(false)
   await page.getByRole('button', { name: 'Reset 3D view' }).click()
   await page.getByLabel('Review notes').fill('Dummy fixture checked; no product fidelity claim.')
+  const approval = page.waitForResponse(
+    (response) => response.url().endsWith('/review') && response.request().method() === 'POST',
+  )
   await page.getByRole('button', { name: 'Approve preview' }).click()
-  await expect(page.locator('.product-row.selected .status')).toHaveText('approved')
+  const approvalResponse = await approval
+  expect(approvalResponse.ok()).toBe(true)
+  expect((await approvalResponse.json()).publish_status).toBe('approved')
+  await expect(page.locator('.product-row.selected .status')).toHaveText('approved', {
+    timeout: 15000,
+  })
   await page.evaluate(() => window.scrollTo(0, 0))
   await page.screenshot({ path: testInfo.outputPath('ayna-studio.png'), fullPage: true })
   await page.getByRole('button', { name: 'Storefront', exact: true }).click()

@@ -60,8 +60,8 @@ export function AuthPage({
                     : { email, password },
                 ),
               })
-              setUser(user)
               await reloadCart()
+              setUser(user)
               go(next.startsWith('/') ? next : '/account')
             })
           }}

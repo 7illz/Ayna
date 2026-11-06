@@ -31,7 +31,7 @@ installed successfully and `pip check` reported no broken requirements.
 | `..\.venv\Scripts\python.exe -m scripts.export_openapi` (backend) | PASS; regenerated contract. |
 | `npm.cmd run types:api` (frontend) | PASS; generated shared TypeScript schema. |
 | `npm.cmd run lint` / `npm.cmd run typecheck` (frontend) | PASS. |
-| `npm.cmd run test -- --run` (frontend) | PASS; 9 tests across 4 files. |
+| `npm.cmd run test -- --run` (frontend) | PASS; **12 tests across 6 files**, including hosted-mode labels, cookie-seller studio access, single-flight/stale-response polling and delayed-cart login ordering. |
 | `npm.cmd run build` (frontend) | PASS; Vite production build, separate lazy Three/viewer chunks. |
 | `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/start-local.ps1 -ApiPort 8003 -WebPort 5176` (root) | PASS; native API and production preview ready. |
 | Native helper stop + `start-local.ps1 -NoSeed -ApiPort 8003 -WebPort 5176` | PASS; owned processes stopped, data preserved and rebuilt. |
@@ -68,15 +68,33 @@ not establish paid API availability or the appearance/fidelity of a real Meshy r
 - Two migration heads: joined by an additive merge revision, tested from both old heads.
 - First frontend type/build check failed because its config fixture lacked the new
   `seller_authenticated` field; corrected the typed fixture and reran successfully.
+- A new hosted-mode unit assertion used Playwright's `exact` option in Testing Library;
+  corrected it to an anchored accessible-name expression before the final build.
 - Initial lint findings in new tests were formatting/import issues; corrected and reran.
 - A generation round-trip check found stale generated types after parallel API/type
   generation. Regenerated OpenAPI first and TypeScript second; final stable regeneration
   is checked independently and again in CI.
 - Docker engine initially failed because a junction pointed to a nonexistent D: directory.
   Recreated the directory and restarted Desktop; `docker info` returned 29.1.3.
+- The first container-unit command supplied JSON through PowerShell/Docker argument
+  quoting incorrectly and failed configuration parsing. Isolated unit-test CORS/storefront
+  settings in `conftest.py`, matching its existing test-only database/queue settings, so
+  tests work independently of the live server's custom ports without shell JSON overrides.
 - Private inspection renders had been stored but were not accessible in the seller UI;
   added signed routes and browser coverage. Mock label regression and authenticated studio
   permissions were fixed. Review notes are bounded; full decisions remain in audit rows.
+- First local Docker browser run: 5 passed, 1 failed because approval's successful HTTP
+  response took 5.687 seconds during concurrent heavy checks, exceeding the assertion's
+  5-second default. Trace confirmed HTTP 200. The test now awaits and verifies that
+  response/body before asserting the UI, with a bounded rendering allowance. No product
+  or quality check was removed.
+- A second container-browser run hit the 5-second mobile canvas-change limit. Kept the
+  pixel-change assertion with a bounded 15-second graphics allowance. Source review also
+  found overlapping asynchronous polls and late responses after product changes; polling
+  is now single-flight with cancellation guards, covered by a deferred-response unit test.
+- Another local run exposed a real login race: seller navigation became available before
+  cart refresh completed, then the delayed login redirect replaced the seller page. Moved
+  the cart refresh before publishing signed-in navigation and added a deferred-cart UI test.
 
 ## GPU and other unavailable tests
 
@@ -105,3 +123,35 @@ with BDT/COD/mock/CPU defaults. Remote CI repeats checks on Linux. The final int
 contains the immutable tested head SHA, CI links and merge result. Results below are added
 only when their commands finish successfully; earlier bootstrap/commerce CI is not reused
 as proof that this integration passed.
+
+Executed container environment:
+
+```powershell
+$env:API_PORT='8004'
+$env:WEB_PORT='5177'
+$env:VITE_API_BASE_URL='http://localhost:8004'
+$env:STOREFRONT_URL='http://localhost:5177'
+$env:CORS_ORIGINS='["http://localhost:5177"]'
+```
+
+| Exact command (repository root) | Result |
+| --- | --- |
+| `docker compose -p ayna-integration config --quiet` | PASS. |
+| `docker compose -p ayna-integration up --build -d --wait --wait-timeout 240` | PASS; fresh images built; API/web/worker/PostgreSQL/Redis/MinIO healthy; migration/storage init exited 0. |
+| `docker compose -p ayna-integration up --build -d --wait --wait-timeout 240 api worker` | PASS; refreshed backend image with final test files; data retained. |
+| `docker compose -p ayna-integration exec -T api python -m scripts.seed_shop` | PASS. |
+| `docker compose -p ayna-integration exec -T api alembic check` | PASS; no new upgrade operations. |
+| `docker compose -p ayna-integration exec -T api python -m scripts.smoke` | PASS; real PostgreSQL/RQ/Redis/MinIO, two/five-photo generation and publication/revocation. |
+| `docker compose -p ayna-integration exec -T api python -m scripts.commerce_smoke` | PASS; PostgreSQL last-unit race/COD/private order/cancel/restock. |
+| `docker compose -p ayna-integration exec -T api ruff check .` | PASS. |
+| `docker compose -p ayna-integration exec -T api ruff format --check .` | PASS. |
+| `docker compose -p ayna-integration exec -T api mypy app` | PASS; 38 source files. |
+| `docker compose -p ayna-integration build api` followed by `docker compose -p ayna-integration run --rm --no-deps api pytest -q` | PASS; **70 tests**, 206.77 seconds, isolated test databases/files. |
+| `docker compose -p ayna-integration build web` and `docker compose -p ayna-integration up -d --no-deps --wait --wait-timeout 120 web` | PASS; final polling/login fixes loaded without resetting infrastructure. |
+| `npm.cmd run test:e2e` with web `http://localhost:5177` and API `http://localhost:8004` | Final rerun **PASS: 6/6**, 2.3 minutes, desktop/mobile, real PostgreSQL/RQ/MinIO. |
+
+GitHub CI on initial integration head `f996383` passed all backend/frontend/Compose jobs:
+[PR run](https://github.com/RafiALMahmud/Ayna/actions/runs/42205604466),
+[push run](https://github.com/RafiALMahmud/Ayna/actions/runs/42205529095).
+The final small test-isolation/UI assertion fixes are checked again on the exact PR head
+before merge; final SHA/CI evidence is attached to PR #3.

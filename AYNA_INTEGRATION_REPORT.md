@@ -54,6 +54,10 @@ commits are preserved, not squashed into falsely attributed replacement code.
 - [x] Added owner-scoped photograph direction/order edits with front-first validation,
   active-job protection and publication revocation on changed references.
 - [x] Normalized viewer model bounds to keep different provider scales within camera view.
+- [x] Serialized studio status polls and ignored stale job/quality responses after product
+  selection changes; retained actual rotate/zoom pixel assertions with bounded graphics waits.
+- [x] Resolved a delayed-login redirect race: refresh the merged cart before publishing
+  signed-in navigation, then redirect immediately. Slow cart loads cannot undo seller navigation.
 - [x] Enabled CI for integration branches and retained all commerce/browser workflows.
 
 ## Phase 4 — critical missing generation path
@@ -102,7 +106,10 @@ Reference: [Docker's WSL storage documentation](https://docs.docker.com/desktop/
 
 ## Phase 6 — GitHub delivery
 
-Integration is pushed as a PR targeting `main`. Merge is permitted by the user's current
+Integration is pushed as [PR #3](https://github.com/RafiALMahmud/Ayna/pull/3) targeting `main`.
+Local final results: 70 backend tests, 12 frontend tests, 6 native browser journeys and
+6 container browser journeys passed, along with both live storage/queue/commerce smokes.
+Merge is permitted by the user's current
 request, superseding historical kit instructions that prohibited automatic merge. Merge
 is performed only against the reviewed head SHA after required checks succeed and without
 bypassing branch protection. Final PR/SHA/status is reported in the completion message;

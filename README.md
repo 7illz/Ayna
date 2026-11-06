@@ -18,9 +18,9 @@ and private MinIO storage. Local mock AI needs no GPU or paid API keys.
 - Optional Stripe hosted checkout/webhooks/refunds and SMTP password recovery adapters.
 
 Products can be sold without generating a 3D model. The separate product studio retains
-its reviewed, explicitly labeled **dummy GLB** workflow. Photorealistic reconstruction
-has an explicitly enabled Meshy adapter, tested with simulated HTTP responses but not
-a paid live task. Photorealistic accuracy is unverified. Clothing/shoe try-on remains
+its reviewed, explicitly labeled **dummy GLB** workflow. Hosted reconstruction has an
+explicitly enabled Meshy adapter, tested with simulated HTTP responses but not a paid
+live task. Photorealistic accuracy is unverified. Clothing/shoe try-on remains
 unimplemented; the mock provider never reconstructs the uploaded product.
 
 Integration audit and operating instructions:

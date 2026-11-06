@@ -12,6 +12,8 @@ os.environ["STORAGE_BACKEND"] = "local"
 os.environ["LOCAL_STORAGE_PATH"] = str(TEST_ROOT / "assets")
 os.environ["AI_PROVIDER"] = "mock"
 os.environ["DEV_AUTH_ENABLED"] = "true"
+os.environ["CORS_ORIGINS"] = '["http://localhost:5173"]'
+os.environ["STOREFRONT_URL"] = "http://localhost:5173"
 
 from alembic import command  # noqa: E402
 from alembic.config import Config  # noqa: E402
