@@ -92,3 +92,19 @@ class QualityReport(Base):
     uncertain_views: Mapped[list] = mapped_column(JSON, default=list)
     reviewed_by: Mapped[str | None] = mapped_column(String(36))
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ReviewAudit(Base):
+    """Append-only seller decisions for publication and revocation."""
+
+    __tablename__ = "review_audits"
+    __table_args__ = (
+        CheckConstraint("decision IN ('approve','reject')", name="review_audit_decision"),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    product_id: Mapped[str] = mapped_column(ForeignKey("products.id"), index=True)
+    job_id: Mapped[str] = mapped_column(ForeignKey("generation_jobs.id"), index=True)
+    seller_id: Mapped[str] = mapped_column(String(36), index=True)
+    decision: Mapped[str] = mapped_column(String(16))
+    notes: Mapped[str] = mapped_column(String(2000), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)

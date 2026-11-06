@@ -127,3 +127,11 @@ live money. Password recovery needs SMTP in production. Courier updates and COD
 collection are recorded by staff; there is no carrier or banking integration.
 Store policies/contact details are editable development examples and need merchant review.
 Photo credits and demo brand disclosures: [DEMO_PHOTOS.md](docs/DEMO_PHOTOS.md).
+
+## Integrated quality and viewer
+
+Developer 2 adds private CPU GLB inspection renders, advisory aligned-view quality checks,
+append-only seller review history, accessible rotate/zoom/pan controls and photograph fallback.
+Optional SAM 2/DINOv2 run only with explicitly supplied local models. See
+[quality implementation](docs/DEV2_QUALITY_STOREFRONT.md). Mock geometry remains unrelated
+to the product and is never given a fabricated fidelity score.
