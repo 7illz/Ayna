@@ -2,6 +2,7 @@ from alembic import context
 
 from app.common import models  # noqa: F401
 from app.common.db import Base, engine
+from app.modules.commerce import models as commerce_models  # noqa: F401
 
 target_metadata = Base.metadata
 if context.is_offline_mode():

@@ -4,8 +4,9 @@ import { api, API_BASE } from './shared/api'
 import type { Config } from './shared/api'
 import { Studio } from './features/seller/Studio'
 import { Storefront } from './features/storefront/Storefront'
+import CommerceApp from './features/commerce/CommerceApp'
 
-export default function App() {
+export function StudioApp() {
   const [tab, setTab] = useState<'studio' | 'store'>('studio')
   const [config, setConfig] = useState<Config | null>(null)
   const [error, setError] = useState('')
@@ -24,6 +25,9 @@ export default function App() {
       <aside className="sidebar">
         <a className="brand" href="/" aria-label="Ayna home">
           <span className="brand-mark">a</span>Ayna<span className="brand-period">.</span>
+        </a>
+        <a className="docs-link" href="#/">
+          Back to Ayna shop
         </a>
         <div className="workspace-name">
           <span className="workspace-avatar">A</span>
@@ -103,4 +107,14 @@ export default function App() {
       </div>
     </div>
   )
+}
+
+export default function App() {
+  const [hash, setHash] = useState(window.location.hash)
+  useEffect(() => {
+    const change = () => setHash(window.location.hash)
+    window.addEventListener('hashchange', change)
+    return () => window.removeEventListener('hashchange', change)
+  }, [])
+  return hash.startsWith('#/studio') ? <StudioApp /> : <CommerceApp />
 }

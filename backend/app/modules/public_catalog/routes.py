@@ -7,6 +7,7 @@ from app.common.db import get_db
 from app.common.models import Product, ProductImage
 from app.common.schemas import PublicImage, PublicProduct
 from app.common.storage import get_storage
+from app.modules.commerce.models import User
 from app.modules.generation.providers import DISCLOSURE
 from app.modules.generation.tasks import latest_job
 
@@ -23,7 +24,15 @@ def stored_asset(key: str, media_type: str) -> Response:
 
 def approved(db, product_id: str) -> Product:
     product = db.get(Product, product_id)
-    if product is None or product.publish_status != "approved":
+    if (
+        product is None
+        or product.publish_status != "approved"
+        or product.is_archived
+        or (product.sku and not product.is_listed)
+    ):
+        raise HTTPException(404, "Product not found")
+    seller = db.get(User, product.seller_id)
+    if seller and not seller.is_active:
         raise HTTPException(404, "Product not found")
     return product
 
@@ -52,7 +61,17 @@ def public_product(db, product: Product) -> PublicProduct:
 
 @router.get("/store/products", response_model=list[PublicProduct])
 def store_products(db=Depends(get_db)):
-    products = db.scalars(select(Product).where(Product.publish_status == "approved").limit(100))
+    products = db.scalars(
+        select(Product)
+        .outerjoin(User, User.id == Product.seller_id)
+        .where(
+            Product.publish_status == "approved",
+            Product.is_archived.is_(False),
+            (Product.sku.is_(None) | Product.is_listed.is_(True)),
+            (User.id.is_(None) | User.is_active.is_(True)),
+        )
+        .limit(100)
+    )
     return [public_product(db, p) for p in products]
 
 

@@ -15,6 +15,8 @@ from app.common.models import GenerationJob, Product, ProductImage
 from app.common.schemas import AppConfig, ErrorOut, HealthOut
 from app.common.storage import get_storage, verify_asset
 from app.modules.catalog.routes import router as catalog
+from app.modules.commerce import accounts, admin, orders, payments
+from app.modules.commerce import catalog as shop_catalog
 from app.modules.generation.routes import router as generation
 from app.modules.public_catalog.routes import router as public_catalog
 from app.modules.quality.routes import router as quality
@@ -23,13 +25,17 @@ settings = get_settings()
 app = FastAPI(
     title="Ayna API",
     version="0.1.0",
-    responses={code: {"model": ErrorOut} for code in (401, 403, 404, 409, 413, 415, 422, 500, 503)},
+    responses={
+        code: {"model": ErrorOut}
+        for code in (400, 401, 403, 404, 409, 413, 415, 422, 429, 500, 502, 503)
+    },
 )
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "X-Dev-Seller-Id", "Idempotency-Key"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allow_credentials=True,
+    allow_headers=["Content-Type", "X-Dev-Seller-Id", "Idempotency-Key", "Authorization"],
     expose_headers=["X-Request-ID"],
 )
 
@@ -37,6 +43,33 @@ app.add_middleware(
 @app.middleware("http")
 async def request_context(request: Request, call_next):
     request.state.request_id = str(uuid4())
+    error_headers = {
+        "X-Request-ID": request.state.request_id,
+        "X-Content-Type-Options": "nosniff",
+        "Cache-Control": "no-store",
+    }
+    if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+        origin = request.headers.get("origin")
+        if origin and origin not in settings.cors_origins:
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Origin is not allowed", "request_id": request.state.request_id},
+                headers=error_headers,
+            )
+        if (
+            (request.cookies.get("ayna_session") or request.cookies.get("ayna_guest_cart"))
+            and not origin
+            and not request.headers.get("authorization")
+        ):
+            if request.url.path != "/api/v1/payments/stripe/webhook":
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "detail": "An allowed Origin is required",
+                        "request_id": request.state.request_id,
+                    },
+                    headers=error_headers,
+                )
     try:
         response = await call_next(request)
     except Exception:
@@ -126,5 +159,15 @@ def private_asset(
         raise HTTPException(404, "Asset unavailable") from exc
 
 
-for router in (catalog, generation, quality, public_catalog):
+for router in (
+    catalog,
+    generation,
+    quality,
+    public_catalog,
+    accounts.router,
+    shop_catalog.router,
+    orders.router,
+    admin.router,
+    payments.router,
+):
     app.include_router(router, prefix="/api/v1")

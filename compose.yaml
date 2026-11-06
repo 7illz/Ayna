@@ -15,6 +15,17 @@ x-app-env: &app-env
   CORS_ORIGINS: ${CORS_ORIGINS:-["http://localhost:5173"]}
   MAX_IMAGE_BYTES: ${MAX_IMAGE_BYTES:-10485760}
   MAX_IMAGE_PIXELS: ${MAX_IMAGE_PIXELS:-20000000}
+  CURRENCY: ${CURRENCY:-BDT}
+  STOREFRONT_URL: ${STOREFRONT_URL:-http://localhost:5173}
+  DEMO_PAYMENTS_ENABLED: ${DEMO_PAYMENTS_ENABLED:-true}
+  STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+  STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+  SMTP_HOST: ${SMTP_HOST:-}
+  SMTP_PORT: ${SMTP_PORT:-587}
+  SMTP_USER: ${SMTP_USER:-}
+  SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+  SMTP_FROM: ${SMTP_FROM:-Ayna <noreply@example.com>}
+  SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
 
 services:
   postgres:
@@ -52,19 +63,22 @@ services:
       timeout: 3s
       retries: 20
   storage-init:
-    build: ./backend
+    image: ayna-backend:local
+    pull_policy: never
     environment: *app-env
     command: [python, -m, scripts.init_storage]
     depends_on:
       minio: {condition: service_healthy}
   migrate:
-    build: ./backend
+    image: ayna-backend:local
+    pull_policy: never
     environment: *app-env
     command: [alembic, upgrade, head]
     depends_on:
       postgres: {condition: service_healthy}
   api:
     build: ./backend
+    image: ayna-backend:local
     environment: *app-env
     ports: ['127.0.0.1:${API_PORT:-8000}:8000']
     depends_on:
@@ -77,7 +91,8 @@ services:
       timeout: 5s
       retries: 20
   worker:
-    build: ./backend
+    image: ayna-backend:local
+    pull_policy: never
     environment: *app-env
     command: [python, -m, app.worker]
     depends_on:

@@ -16,7 +16,11 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers)
   if (!path.startsWith('/store/')) headers.set('X-Dev-Seller-Id', DEMO_SELLER)
   if (init.body && !(init.body instanceof FormData)) headers.set('Content-Type', 'application/json')
-  const response = await fetch(`${API_BASE}/api/v1${path}`, { ...init, headers })
+  const response = await fetch(`${API_BASE}/api/v1${path}`, {
+    ...init,
+    headers,
+    credentials: 'include',
+  })
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: 'Request failed' }))
     throw new Error(`${error.detail}${error.request_id ? ` (request ${error.request_id})` : ''}`)
