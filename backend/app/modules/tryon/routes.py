@@ -32,6 +32,16 @@ def owned_job(db, job_id: UUID | str, user_id: str) -> TryOnJob:
 
 def output(job: TryOnJob) -> TryOnOut:
     result = TryOnOut.model_validate(job)
+    if job.provider == "fashn_vton":
+        result.mode = "generated_preview"
+        result.disclosure = (
+            "AI-generated appearance preview only; it does not predict sizing or physical fit. "
+            "This demo model has a noncommercial parser dependency."
+        )
+    else:
+        result.disclosure = (
+            "Diagnostic mode checks framing and privacy workflow only; no try-on is generated."
+        )
     if job.status == "succeeded" and job.result_key:
         result.result_url = f"/api/v1/try-on/jobs/{job.id}/result"
     return result
@@ -42,11 +52,15 @@ def enqueue(job_id: str) -> None:
     if settings.queue_mode == "inline":
         process_tryon_job(job_id)
         return
-    Queue("ayna", connection=Redis.from_url(settings.redis_url), default_timeout=300).enqueue(
+    Queue(
+        "ayna",
+        connection=Redis.from_url(settings.redis_url),
+        default_timeout=settings.tryon_timeout_seconds,
+    ).enqueue(
         process_tryon_job,
         job_id,
         job_id=f"tryon-{job_id}",
-        job_timeout=300,
+        job_timeout=settings.tryon_timeout_seconds + 60,
         result_ttl=3600,
     )
 
@@ -69,6 +83,11 @@ async def create_job(
     allowed_framing = SUPPORTED.get(product.category)
     if not allowed_framing:
         raise HTTPException(422, "Virtual try-on is available only for shirts, pants, and shoes")
+    if settings.tryon_provider == "fashn_vton" and product.category == "shoes":
+        raise HTTPException(
+            422,
+            "Local shoe try-on is unavailable: the configured model supports clothing only",
+        )
     if framing not in allowed_framing:
         raise HTTPException(422, f"{product.category} try-on requires full-body framing")
     if product.category not in SUPPORTED:
@@ -102,7 +121,7 @@ async def create_job(
         user_id=user.id,
         product_id=product.id,
         idempotency_key=idempotency_key,
-        provider="diagnostic",
+        provider=settings.tryon_provider,
         framing=framing,
         consent_at=created,
         no_training=True,

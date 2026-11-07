@@ -216,7 +216,7 @@ def test_real_adapter_worker_boundary_and_global_request_cap(client, owner, monk
     monkeypatch.setattr(get_settings(), "queue_mode", "rq")
     headers = {**owner, "Idempotency-Key": "simulated-hosted-task"}
     path = f"/api/v1/products/{products[0]['id']}/generation-jobs"
-    with patch("app.modules.generation.routes.queue", return_value=Mock()):
+    with patch("app.modules.generation.routes.queue", return_value=Mock(count=0)):
         response = client.post(path, headers=headers)
         assert response.status_code == 202
         assert client.post(path, headers=headers).json()["id"] == response.json()["id"]

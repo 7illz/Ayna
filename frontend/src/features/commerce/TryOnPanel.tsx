@@ -21,6 +21,7 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
   const [error, setError] = useState('')
   const provider = config?.tryon_provider ?? 'disabled'
   const retention = config?.tryon_retention_hours ?? 24
+  const realPreview = provider === 'fashn_vton'
 
   useEffect(() => {
     if (!job || !['queued', 'processing'].includes(job.status)) return
@@ -44,8 +45,8 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
   if (!user) {
     return (
       <section className="shop-tryon" aria-labelledby="tryon-title">
-        <h2 id="tryon-title">Check your photo framing</h2>
-        <p>Sign in to use the private try-on diagnostic.</p>
+        <h2 id="tryon-title">{realPreview ? 'Generate a clothing preview' : 'Check your photo framing'}</h2>
+        <p>Sign in to use this private feature.</p>
       </section>
     )
   }
@@ -87,13 +88,14 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
       <div className="shop-tryon-heading">
         <Camera size={24} />
         <div>
-          <p className="shop-kicker">PRIVATE DIAGNOSTIC</p>
-          <h2 id="tryon-title">Check your photo framing</h2>
+          <p className="shop-kicker">{realPreview ? 'PRIVATE GENERATED PREVIEW' : 'PRIVATE DIAGNOSTIC'}</p>
+          <h2 id="tryon-title">{realPreview ? 'See a generated clothing preview' : 'Check your photo framing'}</h2>
         </div>
       </div>
       <p>
-        This mode checks whether the image meets basic framing requirements. It does not generate a
-        garment visualization, verify sizing, or predict physical fit.
+        {realPreview
+          ? 'This local model generates a synthetic appearance preview. It does not verify sizing or predict physical fit.'
+          : 'This mode checks whether the image meets basic framing requirements. It does not generate a garment visualization, verify sizing, or predict physical fit.'}
       </p>
       {!job || job.status === 'deleted' ? (
         <form className="shop-form shop-tryon-form" onSubmit={submit}>
@@ -113,7 +115,7 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
           </label>
           <label className="shop-check">
             <input name="consent" value="true" type="checkbox" required />
-            I consent to processing this photo for this diagnostic.
+            I consent to processing this photo for this {realPreview ? 'generated preview' : 'diagnostic'}.
           </label>
           <label className="shop-check">
             <input name="no_training" value="true" type="checkbox" required />
@@ -124,7 +126,7 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
             can delete it sooner.
           </p>
           <button className="shop-button" disabled={busy}>
-            {busy ? 'Uploading…' : 'Run private diagnostic'}
+            {busy ? 'Uploading…' : realPreview ? 'Generate private preview' : 'Run private diagnostic'}
           </button>
         </form>
       ) : (

@@ -19,8 +19,7 @@ class TryOnOut(BaseModel):
     created_at: datetime
     expires_at: datetime
     deleted_at: datetime | None
-    mode: Literal["diagnostic"] = "diagnostic"
+    mode: Literal["diagnostic", "generated_preview"] = "diagnostic"
     disclosure: str = (
-        "Diagnostic mode checks image framing and the private job workflow only. "
-        "It does not generate a try-on, verify sizing, or predict physical fit."
+        "Generated appearance previews are synthetic and do not verify sizing or physical fit."
     )

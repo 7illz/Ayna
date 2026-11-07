@@ -1,5 +1,27 @@
 # Ayna integration test report — 7 November 2026
 
+## Local-AI completion branch — new evidence
+
+Branch `feat/local-ai-completion` starts at `30ecc48`. No paid API, credit card, hosted
+inference endpoint or trial was used.
+
+| Check | Actual result |
+| --- | --- |
+| Offline TripoSR, Ayna demo bag, 128³ extraction | PASS: valid 584,172-byte GLB, 29,156 triangles; CUDA 10.31 s and 1,867.54 MiB peak. Output SHA-256 `D943FBB1CF0D1BCBFBA7E5C93A580D89103AEDE651A86C08AF9DED86A4D3D248`. Human review rejected the inferred back/side geometry as poor. |
+| Offline TripoSR + bounded OpenCV GrabCut, demo headphones | PASS technically: valid 598,172-byte GLB, 29,856 triangles; CUDA 22.88 s and 1,867.54 MiB peak. Output SHA-256 `5151008E240E81C6E4A89F09885A682CC844D1F0B7E95D0477CD4E7D1A5B994C`. Human review again found poor inferred geometry; not approved for storefront publication. |
+| Texture/vertex-color inspection renderer | PASS on the TripoSR vertex-color GLB and Khronos DamagedHelmet textured GLB: deterministic four-view renders. Metallic/roughness, animation, skins and compressed meshes remain unsupported. |
+| Blender 5.2.3 real `bpy` run | EXECUTED on Khronos DamagedHelmet (evaluation asset with a CC BY-NC antecedent): 3,773,916 → 8,193,144 bytes at a 5,000-triangle target. Export lost one of five texture/image entries, so acceptance correctly failed and the production adapter retained the original. This is real failure-path acceptance, not an optimization PASS. |
+| Offline FASHN VTON v1.5 official example | PASS technically: generated 768×1024, 561,264-byte PNG in 93.942 s with 3,727.79 MiB peak PyTorch CUDA allocation; SHA-256 `977A72620A563781AED34E70A46B96468E220927D0AD4E53B12CFF8381948E91`. Main bf16 synthesis used CUDA; ONNX pose estimation fell back to CPU. Human review found a coherent clothing preview. This remains demo-only because the required parser has noncommercial terms. |
+| Backend suite and static gates | PASS: 94 passed, 1 skipped in 121.90 s; Ruff check, Ruff format check and MyPy all PASS. The skip is the optional OpenCV case in the ordinary backend environment. |
+| Frontend lint/type/component/build | PASS: 15 tests in 7 files; production build PASS. Existing 809.04 kB lazy Three chunk warning remains. |
+| Native desktop/mobile browser journeys | PASS after installing the matching Playwright Chromium: 6/6 in 40.9 s. Commerce, seller/admin, mock 3D review/approval and customer viewer journeys ran against local SQLite/files/inline mode. This is not PostgreSQL/RQ/MinIO evidence. |
+| Local container integration | BLOCKED: Docker CLI 29.9.2 is present, but its config is access-denied, the `docker_engine` pipe is absent and this CLI has no Compose plugin. Existing GitHub Linux Compose evidence remains historical, not relabeled as this branch's local execution. |
+
+TripoSR checkpoint SHA-256 is
+`429E2C6B22A0923967459DE24D67F05962B235F79CDE6B032AA7ED2FFCD970EE`.
+Inference ran with network access disabled and local model/config paths. The CPU profile does not
+claim practical TripoSR inference. Peak value is PyTorch CUDA allocation, not whole-process RAM.
+
 ## Remaining-features branch — current host evidence
 
 Worktree: `D:\PROJECTS\Ayna-complete`, branch `feat/complete-remaining-features`, based on

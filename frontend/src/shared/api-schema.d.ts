@@ -204,7 +204,8 @@ export interface paths {
         get: operations["get_job_api_v1_generation_jobs__job_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Cancel Job */
+        delete: operations["cancel_job_api_v1_generation_jobs__job_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2108,7 +2109,7 @@ export interface components {
              * Tryon Provider
              * @enum {string}
              */
-            tryon_provider: "disabled" | "diagnostic";
+            tryon_provider: "disabled" | "diagnostic" | "fashn_vton";
             /** Tryon Retention Hours */
             tryon_retention_hours: number;
         };
@@ -2204,12 +2205,12 @@ export interface components {
             /**
              * Mode
              * @default diagnostic
-             * @constant
+             * @enum {string}
              */
-            mode: "diagnostic";
+            mode: "diagnostic" | "generated_preview";
             /**
              * Disclosure
-             * @default Diagnostic mode checks image framing and the private job workflow only. It does not generate a try-on, verify sizing, or predict physical fit.
+             * @default Generated appearance previews are synthetic and do not verify sizing or physical fit.
              */
             disclosure: string;
         };
@@ -4020,6 +4021,138 @@ export interface operations {
         };
     };
     get_job_api_v1_generation_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "x-dev-seller-id"?: string | null;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Request Entity Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Internal Server Error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    cancel_job_api_v1_generation_jobs__job_id__delete: {
         parameters: {
             query?: never;
             header?: {

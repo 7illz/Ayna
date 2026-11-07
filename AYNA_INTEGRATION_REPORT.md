@@ -1,5 +1,22 @@
 # Ayna integration report — 7 November 2026
 
+## Local AI completion addendum
+
+`local_triposr` is additive and does not replace ordinary commerce or mock mode. It uses
+explicit external Python/source/weight paths, forces offline inference, runs one disposable
+subprocess per task, consumes only the front/first seller image and stores a validated private
+GLB. Seller review remains mandatory. Queue depth, timeout, cancellation and recurring
+recovery/retention maintenance are enforced; late try-on results cannot recreate deleted assets.
+
+The CPU inspection renderer now handles embedded base-color textures and vertex colors with
+explicit limitations. A real Blender 5.2.3 run demonstrated the acceptance gate rejecting a
+larger output that lost one texture/image. No paid provider is enabled by the free profile.
+
+Optional FASHN VTON generated a real offline clothing preview on the RTX 4050 in 93.942 seconds
+with 3,727.79 MiB peak PyTorch CUDA allocation. It is guarded as demo-only because its required
+human-parser dependency inherits noncommercial NVIDIA terms. No suitable permissive local
+shoe-on-feet model was verified, so shoes fail clearly instead of returning a fake result.
+
 ## Current completion branch synchronization
 
 - [x] Preserved the existing `D:\PROJECTS\Ayna` worktree on `feat/quality-storefront`
@@ -89,9 +106,10 @@ commits are preserved, not squashed into falsely attributed replacement code.
   product/paid account fidelity assessment remains required.
 - [x] Real official SAM 2.1 Hiera Tiny and DINOv2 Small local-weight inference ran on the
   RTX 4050; measured device, latency and peak allocation are in `AYNA_TEST_REPORT.md`.
-- [~] Tripo v3, Blender optimization, OpenCV alignment and try-on are now implemented at
-  their safe boundaries. Tripo has simulated HTTP only; Blender is absent; OpenCV lacks a
-  representative real dataset; try-on is a private diagnostic without real synthesis.
+- [~] Hosted Tripo v3, Blender optimization, OpenCV alignment and try-on remain bounded partials.
+  Local TripoSR and FASHN synthesis both ran offline; TripoSR geometry failed human acceptance,
+  Blender's real output failed texture/size acceptance, OpenCV lacks a representative calibrated
+  dataset, and FASHN's parser license blocks commercial use.
 
 ## Phase 5 — remaining-feature implementation
 
@@ -105,12 +123,12 @@ commits are preserved, not squashed into falsely attributed replacement code.
   `not_evaluated`; metrics exist only after correspondence evidence. Localized differences
   are human inspection cues, not logo/text recognition.
 - [~] Added isolated optional Blender decimation with timeout and strict pre/post size,
-  geometry, bounds, material/texture/UV and rendered-appearance gates. The real executable
-  is not installed on this host; fake-subprocess preservation/fallback tests pass.
-- [~] Added clothing/shoe private diagnostic jobs and UI: authenticated consent, image
-  sanitation, explicit framing, async state, owner-only retrieval, 24-hour default retention
-  and deletion. No generated try-on is returned because no legally approved real model or
-  provider is configured; it never claims sizing or fit.
+  geometry, bounds, material/texture/UV and rendered-appearance gates. Blender 5.2.3 ran on a
+  textured GLB; the candidate failed acceptance and the original was preserved.
+- [~] Added clothing/shoe private jobs and UI: authenticated consent, sanitation, framing,
+  async state, owner-only generated results, recurring 24-hour retention and deletion. FASHN
+  clothing inference ran offline; its noncommercial parser blocks commercial acceptance and
+  shoes remain explicitly unsupported. Results never claim sizing or fit.
 - [x] Added reversible `24df91a0bc72` migration, regenerated OpenAPI then TypeScript types,
   and retained ordinary catalog, checkout, seller, admin, orders and 3D behavior.
 

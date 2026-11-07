@@ -52,14 +52,16 @@ export function StudioApp() {
             <Layers3 size={22} />
             <h3>A space to experiment.</h3>
             <p>
-              {config?.provider !== 'mock'
-                ? 'Hosted reconstruction is enabled. New generation requests use credits.'
-                : 'Explore the complete workflow with a free, deterministic mock provider.'}
+              {config?.provider === 'local_triposr'
+                ? 'Local TripoSR uses the front photo and no paid API.'
+                : config?.provider !== 'mock'
+                  ? 'Hosted reconstruction is enabled. New generation requests use credits.'
+                  : 'Explore the complete workflow with a free, deterministic mock provider.'}
             </p>
             <span>
               <span className="status-dot" />{' '}
               {config?.provider !== 'mock'
-                ? `${config?.provider === 'tripo' ? 'Tripo' : 'Meshy'} enabled`
+                ? `${config?.provider === 'local_triposr' ? 'Local TripoSR' : config?.provider === 'tripo' ? 'Tripo' : 'Meshy'} enabled`
                 : 'Mock mode is on'}
             </span>
           </div>

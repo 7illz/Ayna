@@ -7,7 +7,7 @@ from PIL import Image
 
 from app.common.config import get_settings
 from app.common.db import SessionLocal
-from app.common.models import Product, TryOnJob, now
+from app.common.models import Product, ProductImage, TryOnJob, now
 from app.common.storage import get_storage
 from app.main import app
 from app.modules.tryon.tasks import process_tryon_job, purge_expired_tryons
@@ -167,3 +167,55 @@ def test_tryon_processing_failure_and_retention_cleanup(client):
     assert purge_expired_tryons() == 1
     with SessionLocal() as db:
         assert db.get(TryOnJob, job_id).status == "deleted"
+
+
+def test_deleted_job_cannot_be_recreated_by_late_local_result(client, monkeypatch):
+    user = register(client)
+    pid = product("shirts")
+    source_key = f"tryon/{user['id']}/late-source.png"
+    garment_key = f"products/{pid}/garment.png"
+    get_storage().put(source_key, photo(), "image/png")
+    get_storage().put(garment_key, photo(), "image/png")
+    with SessionLocal() as db:
+        db.add(
+            ProductImage(
+                product_id=pid,
+                storage_key=garment_key,
+                original_key=garment_key,
+                view_tag="front",
+                sort_order=0,
+            )
+        )
+        job = TryOnJob(
+            user_id=user["id"],
+            product_id=pid,
+            idempotency_key=f"late-{uuid4()}",
+            provider="fashn_vton",
+            framing="upper_body",
+            consent_at=now(),
+            no_training=True,
+            source_key=source_key,
+            status="queued",
+            progress=0,
+            diagnostics={},
+            expires_at=now() + timedelta(hours=1),
+        )
+        db.add(job)
+        db.commit()
+        job_id = job.id
+
+    def late_result(*_args, **_kwargs):
+        with SessionLocal() as db:
+            row = db.get(TryOnJob, job_id)
+            row.status = "deleted"
+            row.source_key = None
+            row.deleted_at = now()
+            db.commit()
+        return photo(), {"elapsed_seconds": 1.0}
+
+    monkeypatch.setattr("app.modules.tryon.tasks.infer", late_result)
+    process_tryon_job(job_id)
+    with SessionLocal() as db:
+        row = db.get(TryOnJob, job_id)
+        assert row.status == "deleted"
+        assert row.result_key is None

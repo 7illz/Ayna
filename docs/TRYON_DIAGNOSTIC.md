@@ -1,8 +1,14 @@
 # Private try-on diagnostic
 
-Status: **partial**. Ayna implements the customer consent, private upload, asynchronous job,
-progress, failure, retention, owner-only access and deletion workflow. It does not currently
-run a real virtual try-on model or provider and returns no fabricated overlay/result.
+Status: **partial**. Diagnostic mode implements customer consent, private upload, asynchronous
+job progress, failure, retention, owner-only access and deletion without fabricating a result.
+
+The completion branch also contains a tested opt-in `fashn_vton` local clothing backend. It produces
+real generated pixels only when explicitly configured weights are present, but is restricted to
+demo/evaluation: its required `fashn-human-parser` inherits NVIDIA noncommercial terms. Shoes are
+rejected because FASHN supports clothing, not shoe-on-feet synthesis. This restriction prevents
+the feature from being called commercially complete. Late results are discarded if the owner
+deleted the job or retention expired while inference was running.
 
 ## Supported input
 
@@ -25,10 +31,15 @@ TRYON_RETENTION_HOURS=24        # 1–168
 TRYON_MAX_IMAGE_BYTES=10485760
 ```
 
+For the generated clothing preview, follow the pinned setup in `MODEL_LICENSE_INVENTORY.md`,
+set `TRYON_PROVIDER=fashn_vton`, configure `TRYON_PYTHON`, `TRYON_SOURCE_PATH` and
+`TRYON_WEIGHTS_PATH`, and explicitly acknowledge the noncommercial parser dependency. A real
+offline RTX 4050 example completed in 93.942 seconds with 3,727.79 MiB peak PyTorch CUDA
+allocation. The result is a generated appearance preview, never sizing or physical-fit evidence.
+
 RQ is used in the container runtime; inline test/native mode completes the diagnostic during
-the request while preserving the same persisted job states. The worker purges expired assets
-at startup. Production operations should also schedule worker restarts or call the cleanup
-function periodically so the retention bound does not depend on customer activity.
+the request while preserving the same persisted job states. The worker runs stale-job recovery
+and expired-asset cleanup at startup and every `MAINTENANCE_INTERVAL_SECONDS` while alive.
 
 ## API
 

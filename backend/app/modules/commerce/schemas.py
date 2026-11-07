@@ -168,7 +168,7 @@ class StoreConfig(BaseModel):
     categories: list[CategorySummary]
     payment_methods: list[str]
     demo_mode: bool
-    tryon_provider: Literal["disabled", "diagnostic"]
+    tryon_provider: Literal["disabled", "diagnostic", "fashn_vton"]
     tryon_retention_hours: int
 
 

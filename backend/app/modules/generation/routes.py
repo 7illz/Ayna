@@ -52,6 +52,15 @@ def start_generation(
     if product.publish_status == "generating":
         raise HTTPException(409, "A generation is already active")
     settings = get_settings()
+    if settings.queue_mode == "rq":
+        try:
+            queue_depth = queue().count
+        except Exception as exc:
+            raise HTTPException(503, "The AI queue is unavailable; try again later") from exc
+        if queue_depth >= settings.ai_queue_max_jobs:
+            raise HTTPException(
+                503, "The local AI queue is full; try again after current jobs finish"
+            )
     if not settings.min_images <= len(product.images) <= settings.max_images:
         raise HTTPException(422, "Upload 2–5 images before generation")
     recent = select(GenerationJob).where(GenerationJob.created_at >= now() - timedelta(days=1))
@@ -100,7 +109,11 @@ def start_generation(
                 job.id,
                 job_id=job.id,
                 result_ttl=86400,
-                job_timeout=max(settings.meshy_timeout_seconds, settings.tripo_timeout_seconds)
+                job_timeout=max(
+                    settings.meshy_timeout_seconds,
+                    settings.tripo_timeout_seconds,
+                    settings.local_triposr_timeout_seconds,
+                )
                 + 180,
             )
     except Exception as exc:
@@ -117,4 +130,23 @@ def get_job(job_id: UUID, owner: str = Depends(seller_id), db=Depends(get_db)):
     if job is None:
         raise HTTPException(404, "Job not found")
     owned_product(db, job.product_id, owner)
+    return job_out(job, owner)
+
+
+@router.delete("/generation-jobs/{job_id}", response_model=JobOut)
+def cancel_job(job_id: UUID, owner: str = Depends(seller_id), db=Depends(get_db)):
+    job = db.get(GenerationJob, str(job_id))
+    if job is None:
+        raise HTTPException(404, "Job not found")
+    product = owned_product(db, job.product_id, owner, lock=True)
+    if job.status in {"succeeded", "failed", "cancelled"}:
+        return job_out(job, owner)
+    job.status = "cancelled"
+    job.error_code = "CANCELLED_BY_SELLER"
+    job.finished_at = now()
+    job.heartbeat_at = now()
+    job.model_key = None
+    product.publish_status = "draft"
+    db.commit()
+    db.refresh(job)
     return job_out(job, owner)

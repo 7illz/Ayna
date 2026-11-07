@@ -11,6 +11,7 @@ from app.common.db import SessionLocal
 from app.common.models import GenerationJob, Product, now
 from app.common.storage import get_storage
 from app.modules.generation.blender import optimize_with_blender
+from app.modules.generation.local_triposr import LocalTripoSRProvider
 from app.modules.generation.meshy import MeshyProvider, ProviderError, select_views, validate_glb
 from app.modules.generation.providers import MockProvider
 from app.modules.generation.tripo import TripoProvider, select_tripo_views
@@ -56,12 +57,26 @@ def process_job(job_id: str) -> None:
                 job.progress, job.heartbeat_at = value, now()
                 db.commit()
 
+            def cancelled() -> bool:
+                # Observe cancellation without relying on this long-lived session's cache.
+                with SessionLocal() as status_db:
+                    current = status_db.get(GenerationJob, job_id)
+                    return current is None or current.status == "cancelled"
+
             existing_task_id = (job.provenance or {}).get("provider_task_id")
             if not isinstance(existing_task_id, str):
                 existing_task_id = None
 
             if job.provider == "mock":
                 result = MockProvider().generate([i.storage_key for i in product.images])
+            elif job.provider == "local_triposr":
+                ordered = sorted(
+                    product.images,
+                    key=lambda image: (image.view_tag != "front", image.sort_order),
+                )
+                result = LocalTripoSRProvider(progress=progress, cancelled=cancelled).generate(
+                    [image.storage_key for image in ordered]
+                )
             elif job.provider == "meshy":
                 result = MeshyProvider(submitted=submitted, progress=progress).generate(
                     [i.storage_key for i in select_views(product.images)],
@@ -74,6 +89,15 @@ def process_job(job_id: str) -> None:
                 )
             else:
                 raise ProviderError("PROVIDER_NOT_CONFIGURED")
+            if cancelled():
+                db.rollback()
+                db.execute(
+                    update(Product)
+                    .where(Product.id == job.product_id, Product.publish_status == "generating")
+                    .values(publish_status="draft")
+                )
+                db.commit()
+                return
             validate_glb(result.glb)
             optimization = optimize_with_blender(result.glb) if job.provider != "mock" else None
             published_glb = optimization.glb if optimization else result.glb
@@ -102,8 +126,7 @@ def process_job(job_id: str) -> None:
                 except Exception as exc:
                     logger.warning("Could not store %s quality render for job %s", view, job.id)
                     render_storage_failures[view] = exc.__class__.__name__
-            job.model_key = key
-            job.provenance = {
+            provenance = {
                 **(job.provenance or {}),
                 **result.metadata,
                 "optimization": optimization.metadata
@@ -115,12 +138,25 @@ def process_job(job_id: str) -> None:
                 "quality_render_keys": render_keys,
                 "quality_render_storage_failures": render_storage_failures,
             }
-            job.status, job.progress, job.finished_at, job.heartbeat_at = (
-                "succeeded",
-                100,
-                now(),
-                now(),
+            updated = db.scalar(
+                update(GenerationJob)
+                .where(GenerationJob.id == job_id, GenerationJob.status == "processing")
+                .values(
+                    model_key=key,
+                    provenance=provenance,
+                    status="succeeded",
+                    progress=100,
+                    finished_at=now(),
+                    heartbeat_at=now(),
+                )
+                .returning(GenerationJob.id)
             )
+            if updated is None:
+                db.rollback()
+                for stored_key in [key, original_key, *render_keys.values()]:
+                    if stored_key:
+                        storage.delete(stored_key)
+                return
             product.publish_status = "needs_review"
             # Deterministic screenshots are useful for inspection, but mock geometry has no
             # correspondence to the seller photos and therefore stays not_evaluated.
@@ -130,6 +166,9 @@ def process_job(job_id: str) -> None:
             # Do not log provider responses, URLs, uploaded photographs or credentials.
             logger.error("Generation failed for job %s (%s)", job_id, type(exc).__name__)
             db.rollback()
+            current = db.get(GenerationJob, job_id)
+            if current is None or current.status == "cancelled":
+                return
             db.execute(
                 update(GenerationJob)
                 .where(GenerationJob.id == job_id)
@@ -203,7 +242,12 @@ def recover_stale_jobs(
             job_id,
             job_id=job_id,
             result_ttl=86400,
-            job_timeout=max(settings.meshy_timeout_seconds, settings.tripo_timeout_seconds) + 180,
+            job_timeout=max(
+                settings.meshy_timeout_seconds,
+                settings.tripo_timeout_seconds,
+                settings.local_triposr_timeout_seconds,
+            )
+            + 180,
         )
 
     for job_id in to_enqueue:

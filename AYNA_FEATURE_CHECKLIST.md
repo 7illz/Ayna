@@ -1,5 +1,16 @@
 # Ayna feature audit — 7 November 2026
 
+Local update: `[x]` TripoSR now provides an explicit, free, offline `local_triposr` path
+with valid GLB output, progress, cancellation, bounded queueing and isolated resource release.
+It conditions on the front/first photo only; the remaining required photos are seller review
+references. Two real RTX runs completed, but human review rejected their inferred geometry.
+Hosted Meshy/Tripo remain separate and disabled in the free configuration.
+
+Clothing inference ran successfully with optional FASHN VTON v1.5 but is **not approved for commercial
+use** because its required human parser inherits NVIDIA noncommercial terms. Shoe try-on has
+no verified permissive local model and returns a precise unsupported error. Privacy, consent,
+owner access, deletion and late-result suppression remain enforced.
+
 Evidence: reviewed source, merged histories, automated tests and the execution record in
 `AYNA_TEST_REPORT.md`. `[x]` implemented and tested; `[~]` partial; `[ ]` missing;
 `[!]` implemented but broken. Tests listed here are actual test files, not proof of live
@@ -40,7 +51,7 @@ follows actual commit content, not the branch names promised in the kit.
 | [~] | Tripo/fallback — D2 | generation `tripo.py`, routes/tasks | Current v3 upload/multiview/poll/download contract is simulated and bounded. No credential, credit budget or live reconstruction was supplied; no automatic paid-provider switching. |
 | [x] | Queue/status polling — D1/D2/INT | generation routes/tasks, `worker.py` | Idempotency, failure, duplicate claim, progress and stale-job recovery tests. Known hosted IDs reconcile; ambiguous paid submission fails without a duplicate charge. |
 | [x] | GLB creation/storage — D1/D2/INT | providers, `meshy.py`, storage, rendering | Deterministic GLB, embedded-resource validation, bounded downloads, private renders, live storage smoke. |
-| [~] | Blender optimization — D2 | generation `blender.py`, `scripts/blender_optimize.py` | Isolated opt-in subprocess, timeout, original retention and bounds/material/UV/render/file-size gates are tested with a fake runner. Blender is not installed here, so real bpy optimization is not accepted. |
+| [~] | Blender optimization — D2 | generation `blender.py`, `scripts/blender_optimize.py` | Isolated opt-in subprocess, timeout, original retention and bounds/material/UV/render/file-size gates. A real Blender 5.2.3 textured-GLB run lost a texture and grew the file, so acceptance correctly retained the original; optimization is not accepted. |
 | [x] | Failed-generation handling — D1/D2/INT | generation `tasks.py`, seller UI | Queue outage, provider timeout/failure, malformed asset and render failure tests; ambiguous submissions are not retried automatically. |
 | [x] | Free mock mode — D1/D2 | `MockProvider`, quality service | Deterministic/offline tests and browser/Compose smoke; dummy explicitly labelled, never scored as reconstruction. |
 
@@ -91,7 +102,7 @@ follows actual commit content, not the branch names promised in the kit.
 
 | Status | Feature / owner | Source | Coverage / issue / next action |
 | --- | --- | --- | --- |
-| [~] | Functioning virtual try-on — D2 | `modules/tryon/`, `TryOnPanel.tsx` | Functional private diagnostic workflow: consent, authenticated upload, async state, retention/deletion, unsupported-input/failure tests. It produces no synthetic result because no approved real model/provider is configured; sizing/fit remain unverified. |
+| [~] | Functioning virtual try-on — D2 | `modules/tryon/`, `TryOnPanel.tsx` | Private diagnostic plus real offline FASHN clothing synthesis: consent, authenticated upload, async state, generated result, retention/deletion and late-result suppression. Official example produced a coherent preview on RTX 4050. Still partial: parser dependency is noncommercial, shoes are unsupported, and sizing/fit remain unverified. |
 | [x] | Selfie requirements documented — INT | `AYNA_BOTH_PC_TESTING.md` | Documentation review only; planned consented selfie/upper-body clothing path, no functional inference claim. |
 | [x] | Full-body requirements documented — INT | `AYNA_BOTH_PC_TESTING.md` | Documentation review only; planned clothing/shoe placement, pose/occlusion/fallback/deletion rules. Other categories remain ordinary commerce. |
 

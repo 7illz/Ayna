@@ -129,6 +129,22 @@ The adapter is tested with HTTP simulations; this guide is not a live-provider P
 
 ## Developer 2 — RTX 4050, 6 GB VRAM / 16 GB RAM
 
+For free real reconstruction, complete the pinned commands in
+`docs/MODEL_LICENSE_INVENTORY.md`, then set:
+
+```text
+AI_PROVIDER=local_triposr
+LOCAL_TRIPOSR_PYTHON=D:\models\triposr-venv\Scripts\python.exe
+LOCAL_TRIPOSR_SOURCE=D:\models\triposr-src
+LOCAL_TRIPOSR_MODEL_PATH=D:\models\triposr-weights
+LOCAL_TRIPOSR_MC_RESOLUTION=128
+```
+
+The measured 6 GB profile uses CUDA for inference and CPU scikit-image surface extraction.
+Only the front/first photo conditions TripoSR; all other uploaded photos remain comparison
+evidence. Keep mock mode on the CPU PC. Do not describe the measured 10–23 second GPU runs as
+CPU support.
+
 Run the same CPU/Compose tests first. Then use an isolated optional vision environment:
 
 ```powershell
@@ -172,12 +188,12 @@ OOM once on CPU after clearing cached models. A second failure remains unavailab
 Keep these experiments outside the baseline Docker image. Configure optional paths/flags
 only in the isolated worker environment, with the selected weights mounted read-only.
 
-Local 3D experiments are optional research: first measure model+texture peak RAM/VRAM in
-an isolated process with a timeout. No local reconstruction model is included here and
-6 GB does not imply a full shape+texture pipeline fits. Never install large weights or
-claim photorealistic reconstruction simply because CUDA is available.
+The explicit TripoSR profile above is the supported local reconstruction experiment. Keep its
+weights outside Git, use one isolated process, and retain seller review: the measured examples
+fit 6 GB VRAM but failed human geometry acceptance. Never claim photorealistic reconstruction
+simply because CUDA inference completed.
 
-## Virtual try-on diagnostic — real synthesis remains partial
+## Virtual try-on — real clothing synthesis, commercial acceptance remains partial
 
 The implemented diagnostic is available only for shirts, pants and shoes. It requires an
 authenticated customer, explicit processing consent and no-training acknowledgement.
@@ -185,12 +201,19 @@ Shirts accept upper- or full-body framing; pants/shoes require a portrait full-b
 The upload is validated, metadata-stripped, stored privately, processed as an asynchronous
 job, retained for at most `TRYON_RETENTION_HOURS` (24 by default) and deletable immediately.
 
-Set `TRYON_PROVIDER=diagnostic` for this safe pathway or `disabled` to turn it off. It checks
+Set `TRYON_PROVIDER=diagnostic` for the safe lifecycle-only pathway or `disabled` to turn it off. It checks
 dimensions/aspect framing only. Body/feet visibility, pose, occlusion and placement remain
 `not_evaluated`; no result image is created. The UI and API explicitly say it does not verify
 sizing or fit. Test account isolation, consent, invalid framing, deletion and retention with
 `pytest -q tests/test_tryon.py` and the `TryOnPanel` frontend tests.
 
-A real completion still requires a legally approved model/provider, weights or credentials,
-representative human-reviewed outputs, body/foot and pose diagnostics, occlusion handling,
-and measured operation within the hardware/privacy budget. A rotating GLB is not try-on.
+For a real generated clothing preview, complete the exact pinned FASHN setup in
+`docs/MODEL_LICENSE_INVENTORY.md`, configure the three external paths, set
+`TRYON_PROVIDER=fashn_vton`, and explicitly acknowledge the noncommercial parser dependency.
+The official example ran fully offline on this RTX 4050 in 93.942 seconds with 3,727.79 MiB peak
+PyTorch CUDA allocation. Shirts and pants map to FASHN tops/bottoms; shoe-on-feet generation is
+unsupported. Generated previews never prove sizing or physical fit.
+
+Commercial completion still requires replacing or separately licensing the noncommercial parser,
+a permissive shoe model, broader representative human review, and explicit surfaced pose/
+occlusion diagnostics. A rotating GLB is not try-on.
