@@ -16,6 +16,7 @@ inference endpoint or trial was used.
 | Frontend lint/type/component/build | PASS: 15 tests in 7 files; production build PASS. Existing 809.04 kB lazy Three chunk warning remains. |
 | Native desktop/mobile browser journeys | PASS after installing the matching Playwright Chromium: 6/6 in 40.9 s. Commerce, seller/admin, mock 3D review/approval and customer viewer journeys ran against local SQLite/files/inline mode. This is not PostgreSQL/RQ/MinIO evidence. |
 | Local container integration | BLOCKED: Docker CLI 29.9.2 is present, but its config is access-denied, the `docker_engine` pipe is absent and this CLI has no Compose plugin. Existing GitHub Linux Compose evidence remains historical, not relabeled as this branch's local execution. |
+| GitHub Actions, PR #5 run `42391764271` | PASS on commit `04d5d8b`: backend 1m34s, frontend 42s, Compose smoke 4m46s. The Linux Compose job is current-branch PostgreSQL/Redis/RQ/MinIO/browser evidence, but is not relabeled as a local Windows or second-physical-PC run. |
 
 TripoSR checkpoint SHA-256 is
 `429E2C6B22A0923967459DE24D67F05962B235F79CDE6B032AA7ED2FFCD970EE`.
