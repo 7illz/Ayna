@@ -1,4 +1,5 @@
 import io
+import threading
 from datetime import timedelta
 from typing import Literal
 from uuid import UUID
@@ -50,6 +51,17 @@ def output(job: TryOnJob) -> TryOnOut:
 def enqueue(job_id: str) -> None:
     settings = get_settings()
     if settings.queue_mode == "inline":
+        # Diagnostic jobs are intentionally synchronous in tests/native mode. Real GPU
+        # inference can take minutes, so release the upload request and let the existing
+        # status polling UI observe the persisted job instead of appearing frozen.
+        if settings.tryon_provider == "fashn_vton":
+            threading.Thread(
+                target=process_tryon_job,
+                args=(job_id,),
+                name=f"tryon-{job_id}",
+                daemon=True,
+            ).start()
+            return
         process_tryon_job(job_id)
         return
     Queue(

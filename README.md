@@ -1,5 +1,24 @@
 # Ayna
 
+## Current local demo (RTX 4050)
+
+The completed local profile combines genuine offline FASHN clothing synthesis on the RTX 4050
+with a CPU-only LangChain/Ollama product assistant. No paid inference API is called. Start the
+verified Windows profile after the one-time model setup:
+
+```powershell
+.\scripts\start-local.ps1 -ApiPort 8002 -WebPort 5175 -EnableFashn
+# Store: http://localhost:5175  API: http://localhost:8002/docs
+.\scripts\test-rag.ps1 -ApiPort 8002
+```
+
+FASHN is research/demo-only because its human parser is noncommercial. Latest measured user
+inference took 92.275 seconds and 3,727.79 MiB peak PyTorch VRAM; hand/arm artifacts mean visual
+acceptance is still conditional. Ollama 0.40.15 runs `qwen3:0.6b` and
+`qwen3-embedding:0.6b` at `100% CPU` on `127.0.0.1`, preserving GPU priority for try-on.
+See [progress](AYNA_PROGRESS.md), [try-on diagnosis](AYNA_TRYON_DIAGNOSIS.md),
+[Ollama setup](AYNA_OLLAMA_SETUP.md), and [RAG architecture](AYNA_RAG_CHATBOT.md).
+
 A regular multi-category e-commerce platform with optional 3D product previews.
 React, TypeScript, Tailwind, FastAPI, SQLAlchemy/Alembic, PostgreSQL, Redis/RQ,
 and private MinIO storage. Local mock AI needs no GPU or paid API keys; an optional pinned

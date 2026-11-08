@@ -55,33 +55,38 @@ def infer(
             "--output",
             str(output_path),
         ]
-        process = subprocess.Popen(
-            command,
-            cwd=source,
-            env={
-                **os.environ,
-                "HF_HUB_OFFLINE": "1",
-                "TRANSFORMERS_OFFLINE": "1",
-                "HF_DATASETS_OFFLINE": "1",
-                "HF_HOME": str(weights / "hf-cache"),
-                "MPLCONFIGDIR": str(weights / "matplotlib-cache"),
-            },
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-        )
-        deadline = time.monotonic() + settings.tryon_timeout_seconds
-        while process.poll() is None:
-            if cancelled():
-                process.kill()
-                process.wait(timeout=10)
-                raise TryOnInferenceError("TRYON_CANCELLED")
-            if time.monotonic() >= deadline:
-                process.kill()
-                process.wait(timeout=10)
-                raise TryOnInferenceError("TRYON_TIMEOUT")
-            time.sleep(1)
-        log = process.stdout.read()[-4000:] if process.stdout else ""
+        log_path = root / "inference.log"
+        # Do not leave verbose model/tqdm output in an unread PIPE: its bounded Windows
+        # buffer can fill and deadlock the child before inference completes.
+        with log_path.open("w+", encoding="utf-8", errors="replace") as log_file:
+            process = subprocess.Popen(
+                command,
+                cwd=source,
+                env={
+                    **os.environ,
+                    "HF_HUB_OFFLINE": "1",
+                    "TRANSFORMERS_OFFLINE": "1",
+                    "HF_DATASETS_OFFLINE": "1",
+                    "HF_HOME": str(weights / "hf-cache"),
+                    "MPLCONFIGDIR": str(weights / "matplotlib-cache"),
+                },
+                stdout=log_file,
+                stderr=subprocess.STDOUT,
+                text=True,
+            )
+            deadline = time.monotonic() + settings.tryon_timeout_seconds
+            while process.poll() is None:
+                if cancelled():
+                    process.kill()
+                    process.wait(timeout=10)
+                    raise TryOnInferenceError("TRYON_CANCELLED")
+                if time.monotonic() >= deadline:
+                    process.kill()
+                    process.wait(timeout=10)
+                    raise TryOnInferenceError("TRYON_TIMEOUT")
+                time.sleep(1)
+            log_file.seek(0)
+            log = log_file.read()[-4000:]
         if process.returncode or not output_path.is_file():
             raise TryOnInferenceError("TRYON_INFERENCE_FAILED")
         try:

@@ -1,4 +1,25 @@
-# Ayna integration test report — 7 November 2026
+# Ayna integration test report — updated 8 November 2026
+
+## Final RTX/Ollama/RAG milestone
+
+| Check | Actual result |
+| --- | --- |
+| User FASHN job after deadlock fix | PASS technically: job `8ade2beb-c5e6-4517-96b9-34241ca822b3`, 92.275 s, CUDA 0, 3,727.79 MiB peak allocation, valid private PNG. Human review: plausible shirt/face/background; visible arm/hand artifacts, so quality acceptance remains partial. |
+| Ollama install/models | PASS: official 0.40.15; chat model 522 MB and embedding model 639 MB present. |
+| Local generation | PASS: `reasoning=False` response was exactly `Ayna local model works.` |
+| Local embeddings | PASS: query embedding length 1,024. |
+| CPU/GPU isolation | PASS: `ollama ps` reported `100% CPU`, context 4,096; no Ollama NVIDIA compute allocation. |
+| RAG targeted tests | PASS: 3/3 (Bangla normalization, live structured filters, SQL/prompt-injection treatment). |
+| Frontend component suite | PASS: 15/15 in 7 files. |
+| Frontend production build | PASS; existing lazy Three.js chunk-size warning remains non-fatal. |
+| Live RAG English | PASS: cheapest-shirt query returned the two current shirts; 3D query truthfully returned none. Unsafe raw JSON is rejected; structured BDT context uses major units. |
+| Live semantic retrieval | PASS: listening/comfort query ranked Wireless over-ear headphones first; 8-record incremental index persisted locally. Small-model prose fell back deterministically when it violated the response format. |
+| Live RAG Bangla | PASS: explicit UTF-8 query parsed price 1,500 BDT + black + shirts and correctly returned none because the seed catalog has no black shirt. |
+| Final backend/static suite | PASS: 98 passed, 1 skipped (optional OpenCV environment); Ruff format/check and MyPy passed. Initial global-temp run had 7 Windows permission setup errors; full rerun with workspace-local `--basetemp` passed. |
+| API/migrations | PASS: OpenAPI and TS schema regenerated; Alembic at `24df91a0bc72 (head)`, `alembic check` found no operations. |
+| Physical second laptop | NOT EXECUTED: device unavailable. |
+
+No paid endpoint was called and no private source/result was added to Git.
 
 ## Local-AI completion branch — new evidence
 

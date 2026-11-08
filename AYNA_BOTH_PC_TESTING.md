@@ -1,5 +1,42 @@
 # Ayna — testing on both Windows PCs
 
+## Recommended trusted-LAN topology for this prototype
+
+Keep PostgreSQL/storage and the authoritative FastAPI instance on Developer 2's RTX laptop.
+Developer 1 runs the React client pointed at that one backend. This avoids conflicting database
+copies and makes existing authenticated customer/job ownership the worker boundary. Ollama stays
+bound to `127.0.0.1` and is never reachable from the LAN. The RTX backend must be exposed only on
+the private Windows network/firewall and only to Developer 1's fixed LAN address.
+
+On Developer 2, first verify local mode, then adapt the backend launch to `--host 0.0.0.0` with a
+strong ignored signing key and `CORS_ORIGINS` containing the exact Developer 1 frontend origin.
+Do not use `*`, do not forward router ports, and do not expose Ollama port 11434. Verify:
+
+```powershell
+.\scripts\start-ollama.ps1 -Restart
+nvidia-smi
+# Launch the Ayna API on the private adapter only after setting exact CORS and secrets in .env.
+Test-NetConnection -ComputerName 127.0.0.1 -Port 8002
+```
+
+On Developer 1:
+
+```powershell
+$env:VITE_API_BASE_URL='http://<DEV2-LAN-IP>:8002'
+npm.cmd --prefix frontend run dev -- --host 127.0.0.1
+Invoke-RestMethod 'http://<DEV2-LAN-IP>:8002/api/v1/health'
+```
+
+Sign in through the normal account flow, submit one private shirt job, poll it to completion,
+download it, then delete it. Test offline/timeout behavior by stopping only the Dev2 API and
+confirming the UI reports service unavailable instead of invoking Intel inference. Record both
+machines' commit, IP/interface category, response time, result review, and deletion result.
+
+**Status:** same-machine API/job polling is tested. Physical laptop-to-laptop traffic, firewall
+restriction, and failure/recovery are pending because Developer 1's machine is not accessible.
+This prototype does not yet ship a separate token-authenticated worker microservice; do not claim
+that topology is validated.
+
 These are reproducible commands, not a claim that this integration engineer accessed two
 physical PCs. Developer 2's submitted hardware observations remain in
 `docs/DEV2_TEST_RESULTS.md`; this integration run independently verifies only its own host

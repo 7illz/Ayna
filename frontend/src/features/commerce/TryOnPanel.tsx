@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Camera, ShieldCheck } from 'lucide-react'
+import { Camera, Download, RotateCcw, ShieldCheck } from 'lucide-react'
 import { api, assetUrl } from '../../shared/api'
 import type { ShopProduct } from './shared'
 import { Notice, useShop } from './shared'
@@ -19,6 +19,8 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
   const [job, setJob] = useState<TryOnJob | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [previewUrl, setPreviewUrl] = useState('')
+  const [reveal, setReveal] = useState(50)
   const provider = config?.tryon_provider ?? 'disabled'
   const retention = config?.tryon_retention_hours ?? 24
   const realPreview = provider === 'fashn_vton'
@@ -32,6 +34,13 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
     }, 1500)
     return () => window.clearInterval(timer)
   }, [job])
+
+  useEffect(
+    () => () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    },
+    [previewUrl],
+  )
 
   if (!product.try_on_eligible) return null
   if (provider === 'disabled') {
@@ -83,6 +92,26 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
     }
   }
 
+  async function downloadResult() {
+    if (!job?.result_url) return
+    setBusy(true)
+    setError('')
+    try {
+      const response = await fetch(assetUrl(job.result_url), { credentials: 'include' })
+      if (!response.ok) throw new Error('The private result could not be downloaded')
+      const temporary = URL.createObjectURL(await response.blob())
+      const link = document.createElement('a')
+      link.href = temporary
+      link.download = `ayna-try-on-${job.id}.png`
+      link.click()
+      URL.revokeObjectURL(temporary)
+    } catch (reason) {
+      setError((reason as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <section className="shop-tryon" aria-labelledby="tryon-title">
       <div className="shop-tryon-heading">
@@ -101,7 +130,17 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
         <form className="shop-form shop-tryon-form" onSubmit={submit}>
           <label>
             Your private photo
-            <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" required />
+            <input
+              name="photo"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              required
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                if (previewUrl) URL.revokeObjectURL(previewUrl)
+                setPreviewUrl(file ? URL.createObjectURL(file) : '')
+              }}
+            />
           </label>
           <label>
             Framing
@@ -135,13 +174,59 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
             {job.status === 'needs_review'
               ? 'Photo received — real try-on is not configured'
               : job.status === 'failed'
-                ? 'Diagnostic could not finish'
+                ? `${realPreview ? 'Try-on' : 'Diagnostic'} could not finish`
                 : job.status === 'succeeded'
                   ? 'Try-on result ready'
                   : `Processing ${job.progress}%`}
           </strong>
           <p>{job.disclosure}</p>
-          {job.result_url && <img src={assetUrl(job.result_url)} alt="Private try-on result" />}
+          {job.result_url && previewUrl && (
+            <div
+              className="shop-tryon-compare"
+              style={{ '--reveal': `${reveal}%` } as React.CSSProperties}
+            >
+              <img src={previewUrl} alt="Original private upload" />
+              <img
+                className="result"
+                src={assetUrl(job.result_url)}
+                alt="Generated try-on result"
+              />
+              <span className="before">Before</span>
+              <span className="after">After</span>
+            </div>
+          )}
+          {job.result_url && !previewUrl && (
+            <img src={assetUrl(job.result_url)} alt="Generated try-on result" />
+          )}
+          {job.result_url && previewUrl && (
+            <label className="shop-tryon-slider">
+              Compare before and after
+              <input
+                aria-label="Compare before and after"
+                type="range"
+                min="0"
+                max="100"
+                value={reveal}
+                onChange={(event) => setReveal(Number(event.target.value))}
+              />
+            </label>
+          )}
+          <div className="shop-tryon-actions">
+            {job.result_url && (
+              <button
+                className="shop-button"
+                disabled={busy}
+                onClick={() => void downloadResult()}
+              >
+                <Download size={16} /> Download result
+              </button>
+            )}
+            {!['queued', 'processing'].includes(job.status) && (
+              <button className="shop-button outline" disabled={busy} onClick={() => setJob(null)}>
+                <RotateCcw size={16} /> Try another photo
+              </button>
+            )}
+          </div>
           <button className="shop-button outline" disabled={busy} onClick={remove}>
             Delete private upload
           </button>

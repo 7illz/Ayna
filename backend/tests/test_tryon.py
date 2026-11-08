@@ -10,6 +10,7 @@ from app.common.db import SessionLocal
 from app.common.models import Product, ProductImage, TryOnJob, now
 from app.common.storage import get_storage
 from app.main import app
+from app.modules.tryon.routes import enqueue
 from app.modules.tryon.tasks import process_tryon_job, purge_expired_tryons
 
 ORIGIN = {"Origin": "http://localhost:5173"}
@@ -219,3 +220,22 @@ def test_deleted_job_cannot_be_recreated_by_late_local_result(client, monkeypatc
         row = db.get(TryOnJob, job_id)
         assert row.status == "deleted"
         assert row.result_key is None
+
+
+def test_local_fashn_inline_mode_releases_request_to_background(monkeypatch):
+    started = []
+
+    class ImmediateThread:
+        def __init__(self, *, target, args, name, daemon):
+            assert name.startswith("tryon-")
+            assert daemon is True
+            self.target = target
+            self.args = args
+
+        def start(self):
+            started.append(self.args)
+
+    monkeypatch.setattr(get_settings(), "tryon_provider", "fashn_vton")
+    monkeypatch.setattr("app.modules.tryon.routes.threading.Thread", ImmediateThread)
+    enqueue("gpu-job")
+    assert started == [("gpu-job",)]

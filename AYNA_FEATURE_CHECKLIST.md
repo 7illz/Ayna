@@ -1,4 +1,19 @@
-# Ayna feature audit — 7 November 2026
+# Ayna feature audit — updated 8 November 2026
+
+## Final local-AI addendum
+
+| Status | Feature | Verified result |
+| --- | --- | --- |
+| COMPLETE AND TESTED | Ollama installation/local chat | Official 0.40.15; `qwen3:0.6b`; coherent response; `100% CPU`. |
+| COMPLETE AND TESTED | Local embeddings | `qwen3-embedding:0.6b`; 1,024 dimensions; incremental persistent index. |
+| COMPLETE AND TESTED | Deterministic RAG filters | Parameterized live catalog price/category/color/size/stock/3D/try-on filters; injection tests. |
+| COMPLETE AND TESTED | Chat UI | Responsive widget, history, loading/errors, suggestions and real product cards; frontend tests/build pass. |
+| PARTIALLY COMPLETE | Real try-on visual acceptance | Genuine RTX result and safe async workflow pass; latest hand/arm artifacts and only one new user pair prevent full acceptance. |
+| IMPLEMENTED BUT UNTESTED | Physical Intel-to-RTX LAN | Exact topology/commands documented; second laptop unavailable. |
+| COMPLETE AND TESTED | Paid API fail-closed demo | `ALLOW_PAID_AI_PROVIDERS=false`; local demo starts without hosted keys/calls. |
+
+The detailed historical 59-item audit follows. Its earlier aggregate predates the RAG/Ollama
+addendum; use the explicit statuses above and `AYNA_PROGRESS.md` for current acceptance.
 
 Local update: `[x]` TripoSR now provides an explicit, free, offline `local_triposr` path
 with valid GLB output, progress, cancellation, bounded queueing and isolated resource release.

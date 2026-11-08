@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./.data/ayna.db"
     redis_url: str = "redis://localhost:6379/0"
     ai_provider: Literal["mock", "local_triposr", "meshy", "tripo"] = "mock"
+    allow_paid_ai_providers: bool = False
     local_triposr_python: str | None = None
     local_triposr_source: str | None = None
     local_triposr_model_path: str | None = None
@@ -77,11 +78,20 @@ class Settings(BaseSettings):
     maintenance_interval_seconds: int = Field(default=60, ge=15, le=3600)
     tryon_retention_hours: int = Field(default=24, ge=1, le=168)
     tryon_max_image_bytes: int = Field(default=10 * 1024 * 1024, gt=0)
+    rag_enabled: bool = True
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_chat_model: str = "qwen3:0.6b"
+    ollama_embedding_model: str = "qwen3-embedding:0.6b"
+    rag_index_path: str = ".data/rag-products.json"
+    rag_max_results: int = Field(default=8, ge=1, le=12)
+    rag_timeout_seconds: int = Field(default=45, ge=2, le=120)
 
     @model_validator(mode="after")
     def guard_production(self) -> "Settings":
         if self.min_images > self.max_images:
             raise ValueError("min_images must not exceed max_images")
+        if self.ai_provider in {"meshy", "tripo"} and not self.allow_paid_ai_providers:
+            raise ValueError("Paid AI providers are disabled; use a verified local provider")
         if self.ai_provider == "meshy":
             if not self.meshy_api_key or not self.meshy_daily_request_limit:
                 raise ValueError("Meshy requires a server key and a positive daily request cap")

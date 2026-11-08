@@ -21,6 +21,7 @@ from app.modules.commerce import catalog as shop_catalog
 from app.modules.generation.routes import router as generation
 from app.modules.public_catalog.routes import router as public_catalog
 from app.modules.quality.routes import router as quality
+from app.modules.rag.routes import router as rag
 from app.modules.tryon.routes import router as tryon
 
 settings = get_settings()
@@ -181,5 +182,6 @@ for router in (
     admin.router,
     payments.router,
     tryon,
+    rag,
 ):
     app.include_router(router, prefix="/api/v1")
