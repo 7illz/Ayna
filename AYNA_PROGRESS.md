@@ -1,5 +1,20 @@
 # Ayna completion progress — 8 November 2026
 
+## Windows FASHN reliability milestone - 9 November 2026
+
+- Diagnosed job `ae553b3d-68d7-4047-8a24-c89937d20e89`: its real timeout was masked by a
+  Windows cleanup `PermissionError` after only the launcher was killed.
+- Added truthful persisted stage progress, bounded private failure logs, complete Windows process
+  tree termination, exact timeout/cancellation/output errors and validated PNG output.
+- Pinned incompatible ONNX Runtime CUDA 13 pose sessions to a four-thread CPU provider while
+  preserving PyTorch CUDA 12.8 bf16 synthesis on the RTX 4050.
+- Serialized GPU jobs, kept failed uploads, added refresh recovery and clear stage/timeout UI, and
+  removed the possibility of literal `&#x20;` button text.
+- Re-ran the exact unchanged pair successfully on final code in 184.237 seconds. No orphan FASHN
+  process or temp directory remained; Ollama was CPU-only and unloaded.
+- Automated validation: backend 105 passed/1 skipped plus Ruff/MyPy/Alembic; frontend lint,
+  typecheck, 17 tests and production build all passed.
+
 ## Completed and tested
 
 - Fetched all remotes and verified `feat/local-ai-completion` is ahead of, not behind, both

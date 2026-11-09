@@ -239,3 +239,32 @@ def test_local_fashn_inline_mode_releases_request_to_background(monkeypatch):
     monkeypatch.setattr("app.modules.tryon.routes.threading.Thread", ImmediateThread)
     enqueue("gpu-job")
     assert started == [("gpu-job",)]
+
+
+def test_second_fashn_submission_is_rejected_while_gpu_job_is_active(client, monkeypatch):
+    user = register(client, "gpu-busy")
+    pid = product("shirts")
+    monkeypatch.setattr(get_settings(), "tryon_provider", "fashn_vton")
+    with SessionLocal() as db:
+        db.add(
+            TryOnJob(
+                user_id=user["id"],
+                product_id=pid,
+                idempotency_key=f"active-{uuid4()}",
+                provider="fashn_vton",
+                framing="upper_body",
+                consent_at=now(),
+                no_training=True,
+                source_key="tryon/active/source.png",
+                status="processing",
+                progress=75,
+                diagnostics={"stage": "cuda_synthesis"},
+                expires_at=now() + timedelta(hours=1),
+            )
+        )
+        db.commit()
+
+    response = submit(client, pid, framing="upper_body")
+
+    assert response.status_code == 409
+    assert "GPU try-on worker is busy" in response.json()["detail"]

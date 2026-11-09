@@ -1,17 +1,26 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { expect, test, vi } from 'vitest'
+import { beforeEach, expect, test, vi } from 'vitest'
 import { TryOnPanel } from './TryOnPanel'
 import type { ShopProduct } from './shared'
 
-const state = vi.hoisted(() => ({ api: vi.fn(), user: { id: 'buyer', name: 'Buyer' } }))
+const state = vi.hoisted(() => ({
+  api: vi.fn(),
+  user: { id: 'buyer', name: 'Buyer' },
+  config: { tryon_provider: 'diagnostic', tryon_retention_hours: 24 },
+}))
 vi.mock('../../shared/api', () => ({ api: state.api, assetUrl: (url: string) => url }))
 vi.mock('./shared', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./shared')>()),
   useShop: () => ({
     user: state.user,
-    config: { tryon_provider: 'diagnostic', tryon_retention_hours: 24 },
+    config: state.config,
   }),
 }))
+
+beforeEach(() => {
+  state.api.mockReset()
+  state.config.tryon_provider = 'diagnostic'
+})
 
 const product = {
   id: 'product',
@@ -68,4 +77,42 @@ test('uploads privately, reports no real result, and deletes the job', async () 
   await waitFor(() =>
     expect(state.api).toHaveBeenLastCalledWith('/try-on/jobs/job', { method: 'DELETE' }),
   )
+})
+
+test('recovers a persisted job after refresh and shows its real stage', async () => {
+  state.config.tryon_provider = 'fashn_vton'
+  state.api.mockResolvedValueOnce({
+    id: 'job',
+    status: 'processing',
+    progress: 50,
+    disclosure: 'Generated preview only.',
+    result_url: null,
+    error_code: null,
+    diagnostics: { stage: 'human_parsing' },
+  })
+
+  render(<TryOnPanel product={product} />)
+
+  expect(await screen.findByText(/Mapping clothing and body regions · 50%/i)).toBeInTheDocument()
+  expect(state.api).toHaveBeenCalledWith('/try-on/products/product/jobs/latest')
+})
+
+test('explains a persisted timeout and offers retry without deleting the source', async () => {
+  state.config.tryon_provider = 'fashn_vton'
+  state.api.mockResolvedValueOnce({
+    id: 'job',
+    status: 'failed',
+    progress: 100,
+    disclosure: 'Generated preview only.',
+    result_url: null,
+    error_code: 'TRYON_TIMEOUT',
+    diagnostics: { stage: 'failed', failed_stage: 'pose_detection' },
+  })
+
+  render(<TryOnPanel product={product} />)
+
+  expect(await screen.findByText(/15-minute safety limit/i)).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /Try another photo/i })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Delete private upload' })).toBeInTheDocument()
+  expect(screen.queryByText(/&#x20;/)).not.toBeInTheDocument()
 })

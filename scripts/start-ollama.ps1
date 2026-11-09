@@ -33,6 +33,7 @@ if ($Restart -or $serverReady -or -not (Test-Path -LiteralPath $recordPath)) {
     $env:OLLAMA_MAX_LOADED_MODELS = '1'
     $env:OLLAMA_MAX_QUEUE = '16'
     $env:OLLAMA_CONTEXT_LENGTH = '4096'
+    $env:OLLAMA_KEEP_ALIVE = '0'
     $env:OLLAMA_NO_CLOUD = 'true'
     New-Item -ItemType Directory -Force -Path $runtimeRoot | Out-Null
     $server = Start-Process -FilePath $ollamaExe -ArgumentList 'serve' -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runtimeRoot 'ollama.out.log') -RedirectStandardError (Join-Path $runtimeRoot 'ollama.err.log')
@@ -52,9 +53,11 @@ $installed = @(& $ollamaExe list | Select-Object -Skip 1 | ForEach-Object { ($_ 
 $missing = @($requiredModels | Where-Object { $_ -notin $installed })
 if ($missing.Count) { throw "Missing Ollama models: $($missing -join ', '). Run ollama pull for each model once." }
 
-$body = @{ model = 'qwen3:0.6b'; prompt = 'Reply OK'; stream = $false; think = $false; keep_alive = '5m'; options = @{ num_predict = 4; num_ctx = 4096 } } | ConvertTo-Json -Depth 4
+$body = @{ model = 'qwen3:0.6b'; prompt = 'Reply OK'; stream = $false; think = $false; keep_alive = '30s'; options = @{ num_predict = 4; num_ctx = 4096 } } | ConvertTo-Json -Depth 4
 $null = Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:11434/api/generate' -ContentType 'application/json' -Body $body -TimeoutSec 60
 $placement = (& $ollamaExe ps | Out-String)
 if ($placement -notmatch '100% CPU') { throw "Ollama CPU-only verification failed. Current placement:`n$placement" }
+$unload = @{ model = 'qwen3:0.6b'; keep_alive = 0 } | ConvertTo-Json
+$null = Invoke-RestMethod -Method Post -Uri 'http://127.0.0.1:11434/api/generate' -ContentType 'application/json' -Body $unload -TimeoutSec 30
 Write-Output "Ollama $($version.version): localhost only, 100% CPU"
 Write-Output "Models: $($requiredModels -join ', ')"

@@ -1,5 +1,22 @@
 # Ayna integration test report — updated 8 November 2026
 
+## Windows FASHN timeout repair - 9 November 2026
+
+| Check | Actual result |
+| --- | --- |
+| Same failed pair on final code | PASS: job `ae553b3d-68d7-4047-8a24-c89937d20e89` succeeded in 184.237 s, valid 576 x 769 PNG, CUDA bf16, 3,727.79 MiB peak PyTorch allocation. |
+| Truthful stages | PASS: persisted startup 27.445 s, model 43.885, pose 45.678, parsing 46.894, garment 46.914, CUDA 183.915, encoding 184.236, validation 184.237. |
+| Input immutability | PASS: both source SHA-256 values matched before and after two real retries. |
+| Process/temp cleanup | PASS: no FASHN Python/CUDA process and no `ayna-fashn-*` temp directory remained. Four old stale directories were removed. |
+| Ollama isolation | PASS: CPU-only placement verified, then model unloaded; post-run `ollama ps` empty. |
+| Backend | PASS: Ruff format/check, MyPy, **105 passed, 1 skipped**; focused final tests **13 passed**; Alembic check reports no operations. |
+| Frontend | PASS: lint, typecheck, **17 tests in 7 files**, production build. Existing lazy Three.js chunk warning is non-fatal. |
+| API contract | PASS: OpenAPI regenerated for persisted latest-job recovery; TypeScript schema regenerated sequentially. |
+
+Tests explicitly cover timeout-code preservation, cleanup `PermissionError`, Windows `/T /F`
+termination, cancellation, stage persistence, invalid output, active-job rejection, refresh recovery,
+stage labels, timeout messaging and removal of literal HTML entity text.
+
 ## Final RTX/Ollama/RAG milestone
 
 | Check | Actual result |

@@ -1,37 +1,57 @@
 # Virtual try-on diagnosis
 
-## Observed failure
+## 9 November 2026 timeout investigation
 
-The browser remained on **Uploading** even though the upload, sanitized original, CUDA model, and
-worker thread existed. GPU utilization fell idle. This was not a charger, Turbo-mode, CUDA, model
-weight, RGB/BGR, or image-dimension problem.
+Job `ae553b3d-68d7-4047-8a24-c89937d20e89` used a 683 x 911 RGB person image and a
+900 x 900 garment image. It remained at the old generic 30% state and reached the configured
+900-second deadline. The primary error was `TRYON_TIMEOUT`, but Windows temporary-directory
+cleanup raised `PermissionError` because `process.kill()` stopped only the virtual-environment
+launcher while its child Python process still held files. That cleanup exception masked the
+timeout, so the database incorrectly stored `TRYON_FAILED`.
 
-## Root cause
-
-`local_fashn.py` launched the verbose FASHN subprocess with merged stdout/stderr connected to
-`subprocess.PIPE`, but the parent did not drain the pipe until `communicate` after inference. Model
-and progress output filled the Windows pipe buffer, blocking the child and therefore the inline
-HTTP upload request. The eventual timeout correctly failed the job without overwriting its source.
+The slow work was DWPose preprocessing, not CUDA synthesis. PyTorch 2.11.0+cu128 correctly sees
+the NVIDIA GeForce RTX 4050. ONNX Runtime GPU 1.31.1 advertises CUDA and TensorRT providers, but
+its CUDA provider requires CUDA 13/cuDNN 9 and failed to load `cublasLt64_13.dll` on this verified
+CUDA 12.8 PyTorch environment. Both DWPose sessions therefore fell back to CPU. No CUDA package
+was installed or replaced. DWPose now uses an explicit bounded CPU provider (four intra-op
+threads, one inter-op thread); FASHN bf16 synthesis remains on CUDA.
 
 ## Repair
 
-- Child output is streamed to a per-run `inference.log`; only the final bounded tail is read for
-  diagnostics.
-- In native `QUEUE_MODE=inline`, genuine FASHN work starts in a daemon background thread after the
-  job is committed. The 202 response is released immediately and the UI polls persisted status.
-- Diagnostic test mode stays synchronous and deterministic.
-- Result creation remains unique and separate from the immutable sanitized source. Timeout,
-  corrupt output, deletion, and late-result suppression fail closed.
+- The child emits persisted events for process startup, model loading, pose detection, human
+  parsing, garment preparation, CUDA synthesis, image encoding and output validation. Progress
+  changes only on those real events: 10, 20, 35, 50, 65, 75, 95 and 100 percent.
+- Each FASHN launcher gets its own Windows process group. Timeout/cancellation runs
+  `taskkill /PID <pid> /T /F`, waits for the tree, drains the log, then removes the temporary
+  directory. Cleanup warnings are diagnostic metadata and cannot replace the primary error.
+- Failures retain a private, path-sanitized, bounded 16,000-character inference log. Public logs
+  and job diagnostics contain no private image bytes or paths.
+- Exact codes such as `TRYON_TIMEOUT`, `TRYON_CANCELLED` and output-validation failures persist.
+  Failed source uploads remain until user deletion or retention expiry.
+- GPU work is serialized. The API rejects a second active FASHN request, and the worker has a
+  same-process lock as a second guard. Ollama is CPU-only, uses bounded concurrency and unloads
+  before GPU work.
+- Output must be a decodable PNG with valid dimensions before success. The result is stored under
+  a separate key; neither input is overwritten.
 
-## Real execution evidence
+## Final real RTX 4050 evidence
 
-Private job `8ade2beb-c5e6-4517-96b9-34241ca822b3`, using a 683×911 person photo and 900×900
-garment image, completed in 92.275 seconds on `cuda:0`, with 3,727.79 MiB peak PyTorch allocation.
-During synthesis the RTX reached 100% utilization, approximately 2.58 GHz and 70 W; system GPU
-memory reached about 5.84/6.14 GB including non-PyTorch allocations. Output was a valid PNG and
-the original input remained unchanged.
+The same job and unchanged input pair succeeded on the final code in **184.237 seconds**. Persisted
+stage completion times were: startup/imports 27.445 s, model loading 43.885 s, pose 45.678 s,
+human parsing 46.894 s, garment preparation 46.914 s, CUDA synthesis 183.915 s, image encoding
+184.236 s and output validation 184.237 s. Main synthesis used `cuda:0` with bf16 and reported
+3,727.79 MiB peak PyTorch CUDA allocation. External sampling observed 98-100% GPU utilization and
+about 5.76-5.78/6.14 GB total VRAM.
 
-Human inspection found a plausible white T-shirt transfer with face/background largely preserved,
-but visible arm/hand artifacts. This is a technically successful result, not a full visual-quality
-acceptance. Shirts/tops are the demonstrated priority. Pants/one-pieces are model capabilities but
-not accepted here; shoes and selfie-to-body generation are unsupported.
+The result is a valid 576 x 769 PNG (584,207 bytes). Person and garment SHA-256 hashes were
+identical before and after both retries. After completion, Ollama had no loaded model, no FASHN
+Python/CUDA process remained, and no `ayna-fashn-*` temporary directory remained. Four stale
+private temp directories left by the old implementation were also removed after their owning
+processes were confirmed absent.
+
+## Earlier deadlock repair
+
+An earlier upload stall had a separate cause: verbose FASHN output filled an unread Windows pipe.
+The child now writes to a file that the parent incrementally drains, and native inline mode starts
+real FASHN work after returning the persisted job response. Both the pipe deadlock and the later
+process-tree/cleanup masking failure are covered by the current implementation.

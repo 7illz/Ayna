@@ -1,5 +1,18 @@
 # RTX 4050 and host performance
 
+## Final timeout-repair run - 9 November 2026
+
+The original failed pair completed on final code in 184.237 seconds. Startup/imports completed at
+27.445 s and bounded CPU preprocessing completed at 46.914 s; CUDA synthesis completed at
+183.915 s. PyTorch reported 3,727.79 MiB peak CUDA allocation. External `nvidia-smi` sampling
+observed 98-100% utilization and approximately 5.76-5.78/6.14 GB total VRAM during synthesis.
+
+PyTorch 2.11.0+cu128 uses the RTX 4050 on CUDA 12.8. ONNX Runtime GPU 1.31.1 requires CUDA 13 and
+could not load `cublasLt64_13.dll`, so pose inference is deliberately pinned to a bounded CPU
+session rather than relying on an implicit provider fallback. No CUDA packages were changed.
+Ollama 0.40.15 remains CPU-only, one request/model at a time, and is explicitly unloaded after its
+CPU-placement preflight and before FASHN work. Post-run `ollama ps` was empty.
+
 Host measured 8 November 2026:
 
 - AMD Ryzen 5 7535HS: 6 physical / 12 logical cores.

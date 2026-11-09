@@ -190,7 +190,9 @@ def semantic_products(
         from langchain_ollama import OllamaEmbeddings
 
         embedder = OllamaEmbeddings(
-            model=settings.ollama_embedding_model, base_url=settings.ollama_base_url
+            model=settings.ollama_embedding_model,
+            base_url=settings.ollama_base_url,
+            keep_alive=0,
         )
         views = {product.id: product_view(db, product) for product in candidates}
         documents = {product.id: _document(product, views[product.id]) for product in candidates}
@@ -293,6 +295,7 @@ def grounded_answer(question: str, products: list[ChatProduct]) -> tuple[str, bo
             reasoning=False,
             num_ctx=4096,
             num_predict=180,
+            keep_alive=0,
             client_kwargs={"timeout": settings.rag_timeout_seconds},
         )
         response = model.invoke(

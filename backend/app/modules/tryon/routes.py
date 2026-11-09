@@ -116,6 +116,17 @@ async def create_job(
     )
     if existing:
         return output(existing)
+    if settings.tryon_provider == "fashn_vton":
+        active_job = db.scalar(
+            select(TryOnJob.id)
+            .where(
+                TryOnJob.provider == "fashn_vton",
+                TryOnJob.status.in_(("queued", "processing")),
+            )
+            .limit(1)
+        )
+        if active_job:
+            raise HTTPException(409, "The GPU try-on worker is busy; retry after the active job")
     throttle(db, f"tryon:{user.id}", 20)
     raw = await photo.read(settings.tryon_max_image_bytes + 1)
     await photo.close()
@@ -163,6 +174,17 @@ async def create_job(
 @router.get("/jobs/{job_id}", response_model=TryOnOut)
 def get_job(job_id: UUID, user=Depends(current_user), db=Depends(get_db)):
     return output(owned_job(db, job_id, user.id))
+
+
+@router.get("/products/{product_id}/jobs/latest", response_model=TryOnOut | None)
+def latest_job(product_id: UUID, user=Depends(current_user), db=Depends(get_db)):
+    job = db.scalar(
+        select(TryOnJob)
+        .where(TryOnJob.product_id == str(product_id), TryOnJob.user_id == user.id)
+        .order_by(TryOnJob.created_at.desc())
+        .limit(1)
+    )
+    return output(job) if job and job.status != "deleted" else None
 
 
 @router.get("/jobs/{job_id}/result")

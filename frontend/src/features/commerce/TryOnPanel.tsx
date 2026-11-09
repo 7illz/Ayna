@@ -14,6 +14,28 @@ type TryOnJob = {
   disclosure: string
 }
 
+const stageLabels: Record<string, string> = {
+  input_preparation: 'Preparing private inputs',
+  process_startup: 'Starting the isolated worker',
+  model_loading: 'Loading local AI models',
+  pose_detection: 'Detecting body pose',
+  human_parsing: 'Mapping clothing and body regions',
+  garment_preprocessing: 'Preparing the selected garment',
+  cuda_synthesis: 'Generating the preview on the RTX GPU',
+  image_encoding: 'Encoding the generated image',
+  output_validation: 'Validating the private result',
+}
+
+const failureMessages: Record<string, string> = {
+  TRYON_TIMEOUT:
+    'Generation exceeded the 15-minute safety limit. The worker was stopped and your original upload remains private and unchanged.',
+  TRYON_CANCELLED: 'Generation was cancelled safely. No partial result was published.',
+  TRYON_OUTPUT_INVALID: 'The model returned an invalid image, so Ayna rejected the result.',
+  TRYON_OUTPUT_MISSING: 'The model finished without a result image, so Ayna rejected the job.',
+  TRYON_INFERENCE_FAILED: 'The local model stopped unexpectedly before producing a valid result.',
+  TRYON_MODEL_NOT_CONFIGURED: 'The local try-on model is not configured on this machine.',
+}
+
 export function TryOnPanel({ product }: { product: ShopProduct }) {
   const { user, config } = useShop()
   const [job, setJob] = useState<TryOnJob | null>(null)
@@ -24,6 +46,21 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
   const provider = config?.tryon_provider ?? 'disabled'
   const retention = config?.tryon_retention_hours ?? 24
   const realPreview = provider === 'fashn_vton'
+
+  useEffect(() => {
+    if (!user || !realPreview) return
+    let active = true
+    api<TryOnJob | null>(`/try-on/products/${product.id}/jobs/latest`)
+      .then((latest) => {
+        if (active && latest) setJob((current) => current ?? latest)
+      })
+      .catch(() => {
+        /* The regular product page remains usable when recovery is unavailable. */
+      })
+    return () => {
+      active = false
+    }
+  }, [product.id, realPreview, user])
 
   useEffect(() => {
     if (!job || !['queued', 'processing'].includes(job.status)) return
@@ -112,6 +149,12 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
     }
   }
 
+  const currentStage = typeof job?.diagnostics.stage === 'string' ? job.diagnostics.stage : ''
+  const stageLabel = stageLabels[currentStage] || 'Processing the private preview'
+  const failureMessage = job?.error_code
+    ? failureMessages[job.error_code] || `The worker stopped with error ${job.error_code}.`
+    : ''
+
   return (
     <section className="shop-tryon" aria-labelledby="tryon-title">
       <div className="shop-tryon-heading">
@@ -177,8 +220,9 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
                 ? `${realPreview ? 'Try-on' : 'Diagnostic'} could not finish`
                 : job.status === 'succeeded'
                   ? 'Try-on result ready'
-                  : `Processing ${job.progress}%`}
+                  : `${stageLabel} · ${job.progress}%`}
           </strong>
+          {job.status === 'failed' && <p className="shop-error">{failureMessage}</p>}
           <p>{job.disclosure}</p>
           {job.result_url && previewUrl && (
             <div
