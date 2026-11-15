@@ -21,7 +21,6 @@ const stageLabels: Record<string, string> = {
   pose_detection: 'Detecting body pose',
   human_parsing: 'Mapping clothing and body regions',
   garment_preprocessing: 'Preparing the selected garment',
-  cuda_synthesis: 'Generating the preview on the RTX GPU',
   image_encoding: 'Encoding the generated image',
   output_validation: 'Validating the private result',
 }
@@ -150,7 +149,26 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
   }
 
   const currentStage = typeof job?.diagnostics.stage === 'string' ? job.diagnostics.stage : ''
-  const stageLabel = stageLabels[currentStage] || 'Processing the private preview'
+  const runtime =
+    job?.diagnostics.runtime && typeof job.diagnostics.runtime === 'object'
+      ? (job.diagnostics.runtime as Record<string, unknown>)
+      : {}
+  const synthesisDevice = runtime.synthesis_device
+  const cudaDevice = typeof runtime.cuda_device === 'string' ? runtime.cuda_device : ''
+  const deviceLine =
+    synthesisDevice === 'cuda'
+      ? `Device: ${cudaDevice || 'CUDA GPU'}`
+      : synthesisDevice === 'cpu'
+        ? 'Device: CPU'
+        : ''
+  const stageLabel =
+    currentStage === 'cuda_synthesis'
+      ? synthesisDevice === 'cuda'
+        ? 'Generating the preview on the RTX GPU'
+        : synthesisDevice === 'cpu'
+          ? 'Generating the preview on the CPU'
+          : 'Generating the preview'
+      : stageLabels[currentStage] || 'Processing the private preview'
   const failureMessage = job?.error_code
     ? failureMessages[job.error_code] || `The worker stopped with error ${job.error_code}.`
     : ''
@@ -224,6 +242,9 @@ export function TryOnPanel({ product }: { product: ShopProduct }) {
           </strong>
           {job.status === 'failed' && <p className="shop-error">{failureMessage}</p>}
           <p>{job.disclosure}</p>
+          {job.status === 'succeeded' && deviceLine && (
+            <p className="shop-small shop-muted">{deviceLine}</p>
+          )}
           {job.result_url && previewUrl && (
             <div
               className="shop-tryon-compare"

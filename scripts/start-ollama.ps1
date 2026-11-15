@@ -26,18 +26,31 @@ $recordPath = Join-Path $runtimeRoot 'ollama-process.json'
 if ($Restart -or $serverReady -or -not (Test-Path -LiteralPath $recordPath)) {
     foreach ($process in $ownedProcesses) { Stop-Process -Id $process.Id -Force }
     Start-Sleep -Milliseconds 700
-    $env:OLLAMA_HOST = '127.0.0.1:11434'
-    $env:CUDA_VISIBLE_DEVICES = '-1'
-    $env:OLLAMA_LLM_LIBRARY = 'cpu_avx2'
-    $env:OLLAMA_NUM_PARALLEL = '1'
-    $env:OLLAMA_MAX_LOADED_MODELS = '1'
-    $env:OLLAMA_MAX_QUEUE = '16'
-    $env:OLLAMA_CONTEXT_LENGTH = '4096'
-    $env:OLLAMA_KEEP_ALIVE = '0'
-    $env:OLLAMA_NO_CLOUD = 'true'
-    New-Item -ItemType Directory -Force -Path $runtimeRoot | Out-Null
-    $server = Start-Process -FilePath $ollamaExe -ArgumentList 'serve' -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runtimeRoot 'ollama.out.log') -RedirectStandardError (Join-Path $runtimeRoot 'ollama.err.log')
-    @{ id = $server.Id; executable = $ollamaExe; cpu_only = $true } | ConvertTo-Json | Set-Content -LiteralPath $recordPath -Encoding UTF8
+    $serverEnvironment = @{
+        OLLAMA_HOST = '127.0.0.1:11434'
+        CUDA_VISIBLE_DEVICES = '-1'
+        OLLAMA_LLM_LIBRARY = 'cpu_avx2'
+        OLLAMA_NUM_PARALLEL = '1'
+        OLLAMA_MAX_LOADED_MODELS = '1'
+        OLLAMA_MAX_QUEUE = '16'
+        OLLAMA_CONTEXT_LENGTH = '4096'
+        OLLAMA_KEEP_ALIVE = '0'
+        OLLAMA_NO_CLOUD = 'true'
+    }
+    $previousEnvironment = @{}
+    foreach ($name in $serverEnvironment.Keys) {
+        $previousEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
+        [Environment]::SetEnvironmentVariable($name, $serverEnvironment[$name], 'Process')
+    }
+    try {
+        New-Item -ItemType Directory -Force -Path $runtimeRoot | Out-Null
+        $server = Start-Process -FilePath $ollamaExe -ArgumentList 'serve' -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runtimeRoot 'ollama.out.log') -RedirectStandardError (Join-Path $runtimeRoot 'ollama.err.log')
+        @{ id = $server.Id; executable = $ollamaExe; cpu_only = $true } | ConvertTo-Json | Set-Content -LiteralPath $recordPath -Encoding UTF8
+    } finally {
+        foreach ($name in $serverEnvironment.Keys) {
+            [Environment]::SetEnvironmentVariable($name, $previousEnvironment[$name], 'Process')
+        }
+    }
 }
 
 for ($attempt = 0; $attempt -lt 20; $attempt++) {

@@ -1,5 +1,23 @@
 # RTX 4050 and host performance
 
+## CUDA environment isolation follow-up - 16 November 2026
+
+`start-ollama.ps1` now applies `CUDA_VISIBLE_DEVICES=-1` only to the spawned Ollama server and
+restores the parent process environment before Ayna starts. A new private job submitted through
+the running HTTP API after `start-local.ps1 -EnableFashn` persisted
+`cuda_available=true`, `synthesis_device="cuda"` and
+`cuda_device="NVIDIA GeForce RTX 4050 Laptop GPU"`. This proves the API-launched worker, rather
+than only a manually launched worker, can see CUDA.
+
+The authorized 683 x 911 / 900 x 900 pair completed in **111.742 seconds**. CUDA synthesis
+completed at 111.425 s; PyTorch peak allocation was 3,727.79 MiB. External sampling during
+synthesis measured **5,818/6,141 MiB** total VRAM, 100% utilization and 70.95 W. The output was a
+valid 576 x 769 PNG. The source SHA-256 remained unchanged. After completion there was no FASHN
+Python child, no `ayna-fashn-*` temporary directory and no loaded Ollama model.
+
+The result card now renders a device line from persisted diagnostics. It names the RTX device only
+when `synthesis_device` is exactly `cuda`; CPU and unknown-device states cannot claim RTX.
+
 ## Final timeout-repair run - 9 November 2026
 
 The original failed pair completed on final code in 184.237 seconds. Startup/imports completed at

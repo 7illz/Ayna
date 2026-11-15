@@ -1,5 +1,19 @@
 # Ayna integration test report — updated 8 November 2026
 
+## CUDA environment isolation follow-up - 16 November 2026
+
+| Check | Actual result |
+| --- | --- |
+| Backend full suite | PASS: Ruff format/check, MyPy, **105 passed, 1 skipped**, Alembic check clean. |
+| Frontend full suite | PASS: generated API types, lint, typecheck, **19 tests in 7 files**, production build. |
+| Native startup isolation | PASS: Ollama 0.40.16 verified `100% CPU`; API-launched FASHN persisted CUDA availability and RTX 4050 device. |
+| Real FASHN job | PASS: 111.742 s, CUDA bf16, 3,727.79 MiB PyTorch peak, 5,818/6,141 MiB external VRAM sample, valid 576 x 769 PNG. |
+| Input/process/temp safety | PASS: source hash unchanged; no FASHN child and no `ayna-fashn-*` directory after completion; Ollama unloaded. |
+| Result-card device line | PASS: component coverage verifies the persisted RTX name on success and verifies that CPU diagnostics never display RTX. |
+
+The existing lazy Three.js chunk-size warning remains non-fatal and is unrelated to this try-on
+change.
+
 ## Windows FASHN timeout repair - 9 November 2026
 
 | Check | Actual result |

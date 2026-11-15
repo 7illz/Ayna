@@ -93,8 +93,49 @@ test('recovers a persisted job after refresh and shows its real stage', async ()
 
   render(<TryOnPanel product={product} />)
 
-  expect(await screen.findByText(/Mapping clothing and body regions · 50%/i)).toBeInTheDocument()
+  expect(await screen.findByText(/Mapping clothing and body regions.*50%/i)).toBeInTheDocument()
   expect(state.api).toHaveBeenCalledWith('/try-on/products/product/jobs/latest')
+})
+
+test('does not claim RTX synthesis when persisted diagnostics report CPU', async () => {
+  state.config.tryon_provider = 'fashn_vton'
+  state.api.mockResolvedValueOnce({
+    id: 'job',
+    status: 'processing',
+    progress: 75,
+    disclosure: 'Generated preview only.',
+    result_url: null,
+    error_code: null,
+    diagnostics: { stage: 'cuda_synthesis', runtime: { synthesis_device: 'cpu' } },
+  })
+
+  render(<TryOnPanel product={product} />)
+
+  expect(await screen.findByText(/Generating the preview on the CPU.*75%/i)).toBeInTheDocument()
+  expect(screen.queryByText(/RTX GPU/i)).not.toBeInTheDocument()
+})
+
+test('shows the persisted CUDA device on the completed result card', async () => {
+  state.config.tryon_provider = 'fashn_vton'
+  state.api.mockResolvedValueOnce({
+    id: 'job',
+    status: 'succeeded',
+    progress: 100,
+    disclosure: 'Generated preview only.',
+    result_url: '/try-on/jobs/job/result',
+    error_code: null,
+    diagnostics: {
+      stage: 'output_validation',
+      runtime: {
+        synthesis_device: 'cuda',
+        cuda_device: 'NVIDIA GeForce RTX 4050 Laptop GPU',
+      },
+    },
+  })
+
+  render(<TryOnPanel product={product} />)
+
+  expect(await screen.findByText('Device: NVIDIA GeForce RTX 4050 Laptop GPU')).toBeInTheDocument()
 })
 
 test('explains a persisted timeout and offers retry without deleting the source', async () => {
