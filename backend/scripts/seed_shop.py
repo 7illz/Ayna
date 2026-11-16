@@ -57,6 +57,46 @@ PRODUCTS = [
         True,
     ),
     (
+        "mens-polo",
+        "Men's navy cotton polo",
+        "shirts",
+        219000,
+        269000,
+        24,
+        "A polished navy polo with a clean collar and breathable cotton-pique texture.",
+        True,
+    ),
+    (
+        "mens-oxford",
+        "Men's sky Oxford shirt",
+        "shirts",
+        279000,
+        329000,
+        20,
+        "A crisp sky-blue Oxford shirt for workdays, dinners and easy layered looks.",
+        True,
+    ),
+    (
+        "mens-panjabi",
+        "Men's forest green panjabi",
+        "shirts",
+        329000,
+        389000,
+        18,
+        "A simple forest-green cotton-linen panjabi with a band collar and relaxed silhouette.",
+        True,
+    ),
+    (
+        "mens-henley",
+        "Men's terracotta henley",
+        "shirts",
+        239000,
+        289000,
+        22,
+        "A soft long-sleeve henley in warm terracotta with an understated button placket.",
+        True,
+    ),
+    (
         "dress",
         "Weekend summer dress",
         "shirts",
@@ -150,11 +190,16 @@ def main():
             )
             db.add(product)
             db.flush()
-            raw = (root / f"{key}.jpg").read_bytes()
-            clean = sanitize_image(raw, "image/jpeg")
+            source = root / f"{key}.jpg"
+            content_type = "image/jpeg"
+            if not source.is_file():
+                source = root / f"{key}.png"
+                content_type = "image/png"
+            raw = source.read_bytes()
+            clean = sanitize_image(raw, content_type)
             image_id = new_id()
             prefix = f"products/{product.id}/{image_id}"
-            get_storage().put(f"{prefix}/original", raw, "image/jpeg")
+            get_storage().put(f"{prefix}/original", raw, content_type)
             get_storage().put(f"{prefix}/photo.png", clean, "image/png")
             product.images.append(
                 ProductImage(
