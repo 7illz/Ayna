@@ -115,6 +115,23 @@ test('does not claim RTX synthesis when persisted diagnostics report CPU', async
   expect(screen.queryByText(/RTX GPU/i)).not.toBeInTheDocument()
 })
 
+test('shows the persisted skin-recovery stage', async () => {
+  state.config.tryon_provider = 'fashn_vton'
+  state.api.mockResolvedValueOnce({
+    id: 'job',
+    status: 'processing',
+    progress: 90,
+    disclosure: 'Generated preview only.',
+    result_url: null,
+    error_code: null,
+    diagnostics: { stage: 'skin_recovery' },
+  })
+
+  render(<TryOnPanel product={product} />)
+
+  expect(await screen.findByText(/Recovering exposed skin tone.*90%/i)).toBeInTheDocument()
+})
+
 test('shows the persisted CUDA device on the completed result card', async () => {
   state.config.tryon_provider = 'fashn_vton'
   state.api.mockResolvedValueOnce({

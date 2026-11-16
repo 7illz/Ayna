@@ -75,6 +75,9 @@ class Settings(BaseSettings):
     tryon_weights_path: str | None = None
     tryon_timeout_seconds: int = Field(default=900, ge=60, le=3600)
     tryon_log_path: str = ".data/tryon-logs"
+    tryon_debug: bool = False
+    tryon_debug_path: str = "../.data/tryon-debug"
+    tryon_skin_recovery: bool = True
     tryon_fashn_noncommercial_dependency_acknowledged: bool = False
     maintenance_interval_seconds: int = Field(default=60, ge=15, le=3600)
     tryon_retention_hours: int = Field(default=24, ge=1, le=168)

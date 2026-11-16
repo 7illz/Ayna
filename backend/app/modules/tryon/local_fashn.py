@@ -32,6 +32,7 @@ STAGE_PROGRESS = {
     "human_parsing": 50,
     "garment_preprocessing": 65,
     "cuda_synthesis": 75,
+    "skin_recovery": 90,
     "image_encoding": 95,
     "output_validation": 95,
 }
@@ -181,6 +182,24 @@ def infer(
             "--output",
             str(output_path),
         ]
+        if getattr(settings, "tryon_debug", False):
+            command.extend(
+                [
+                    "--job-id",
+                    job_id,
+                    "--debug-dir",
+                    str(
+                        Path(
+                            getattr(settings, "tryon_debug_path", "../.data/tryon-debug")
+                        ).resolve()
+                    ),
+                ]
+            )
+        command.append(
+            "--skin-recovery"
+            if getattr(settings, "tryon_skin_recovery", True)
+            else "--no-skin-recovery"
+        )
         # Do not leave verbose model/tqdm output in an unread PIPE: its bounded Windows
         # buffer can fill and deadlock the child before inference completes.
         with log_path.open("w+", encoding="utf-8", errors="replace") as log_file:

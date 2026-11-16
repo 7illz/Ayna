@@ -1,5 +1,31 @@
 # Virtual try-on diagnosis
 
+## Long-sleeve to short-sleeve quality diagnosis - 16 November 2026
+
+Private debug capture is behind `TRYON_DEBUG` (off by default) and writes only to the Git-ignored
+`.data/tryon-debug/` tree. It records inputs, poses, parser IDs and legend, replacement mask,
+prepared garment, raw outputs and final composite. These artifacts and paths never enter public
+logs or persisted job diagnostics.
+
+On the authorized pair, the parser produced 151,805 source `top` pixels but only 18 `arms` pixels
+and 183 `hands` pixels: it classified the long jacket sleeves as garment, as expected. The
+computed replacement mask covered 99.9954% of those top pixels. The defect was not a missing mask
+or gamma conversion. FASHN v1.5 defaults to `segmentation_free=True`, so production bypassed the
+correct mask and conditioned synthesis on the original long sleeves. This is diagnosis category
+**(c), bad conditioning region**; the evidence rules out (a), (b) and (d).
+
+`TRYON_SKIN_RECOVERY` now defaults on. Long-to-short and long-to-sleeveless cases build refined
+arm, hand, neck and old-sleeve masks, run a second deterministic synthesis with a texture-
+preserving face/neck Lab skin condition, normalize low-frequency arm color, and composite only
+inside the feathered support. Other sleeve transitions skip recovery. SAM 2 is not loaded because
+the measured 6 GB profile already reaches about 5.8 GB total VRAM.
+
+The truthful sequence now includes skin recovery at 90% between CUDA synthesis at 75% and output
+validation at 95%. Recovery timing, sleeve case, application status and Lab deltas persist in
+bounded runtime diagnostics. The final private proof measured forearm-to-face Lab delta **27.2705
+before** and **3.0830 after**, with outside-support L1 exactly **0.0**. Visual review rejected two
+intermediate blocky variants before accepting the texture-preserving path.
+
 ## 9 November 2026 timeout investigation
 
 Job `ae553b3d-68d7-4047-8a24-c89937d20e89` used a 683 x 911 RGB person image and a

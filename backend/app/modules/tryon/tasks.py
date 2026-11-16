@@ -179,6 +179,12 @@ def process_tryon_job(job_id: str) -> None:
                             "pose_providers",
                             "pose_fallback_reason",
                             "cpu_threads",
+                            "skin_recovery_applied",
+                            "skin_recovery_seconds",
+                            "sleeve_case",
+                            "sam2_refinement",
+                            "skin_tone_delta_before",
+                            "skin_tone_delta_after",
                         }
                         runtime = dict(current_diagnostics.get("runtime", {}))
                         runtime.update(

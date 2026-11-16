@@ -1,5 +1,21 @@
 # Ayna integration test report — updated 8 November 2026
 
+## Try-on sleeve quality follow-up - 16 November 2026
+
+| Check | Actual result |
+| --- | --- |
+| Diagnosis/debug evidence | PASS: private intermediates proved segmentation-free conditioning, not parser or mask coverage, caused the grey arms. |
+| Sleeve mask unit coverage | PASS: long-to-short, long-to-long, short-to-short, short-to-long and sleeveless cases. |
+| Full backend | PASS: Ruff format/check, MyPy, **110 passed, 2 skipped**, Alembic clean. |
+| Exact opt-in GPU test | PASS separately: **1 passed in 150.04 s**, valid CUDA output, recovery applied, peak below 6,144 MiB. |
+| Full frontend | PASS: generated API types, lint, typecheck, **20 tests in 7 files**, production build. |
+| Quality comparison | PASS: Lab delta 27.2705 to 3.0830; outside edit-support L1 exactly 0.0. |
+| Process safety | PASS: measured PyTorch peak 3,727.79 MiB; no FASHN child or temporary directory remained. |
+
+The proof preserves the tee, neckline, trousers, hands, pose and background outside the arm
+support. It remains a synthetic appearance preview, not a fit or anatomy guarantee. No weights,
+private images, results, databases or `.data` artifacts are tracked.
+
 ## CUDA environment isolation follow-up - 16 November 2026
 
 | Check | Actual result |

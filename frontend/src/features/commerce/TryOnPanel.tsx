@@ -21,6 +21,8 @@ const stageLabels: Record<string, string> = {
   pose_detection: 'Detecting body pose',
   human_parsing: 'Mapping clothing and body regions',
   garment_preprocessing: 'Preparing the selected garment',
+  cuda_synthesis: 'Generating the preview on the RTX GPU',
+  skin_recovery: 'Recovering exposed skin tone',
   image_encoding: 'Encoding the generated image',
   output_validation: 'Validating the private result',
 }

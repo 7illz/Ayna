@@ -1,5 +1,20 @@
 # Ayna completion progress — 8 November 2026
 
+## Long-sleeve exposed-skin recovery - 16 November 2026
+
+- Added opt-in private intermediate capture and proved that segmentation-free conditioning,
+  rather than parser or mask coverage, caused the dark exposed arms.
+- Added default-on sleeve-aware recovery with a real persisted 90% stage and bounded timing,
+  sleeve-case and Lab diagnostics. Non-applicable transitions skip the second pass.
+- Added five sleeve-mask unit cases, an opt-in RTX integration test and
+  `scripts/compare_tryon.py` for private baseline/fixed proof.
+- Final Lab delta improved from 27.2705 to 3.0830 with 0.0 outside-mask L1. Exact final CUDA
+  integration passed in 150.04 s; measured PyTorch peak remained 3,727.79 MiB.
+- Validation passed: backend 110/2 skipped plus a separate live GPU pass; frontend 20 tests,
+  generated types, lint, typecheck and build. No orphan process or temp directory remained.
+- Step 1 was committed and pushed as `1dff007`. Steps 2-4 remain uncommitted for review, following
+  the instruction to stop after Step 4.
+
 ## Windows FASHN reliability milestone - 9 November 2026
 
 - Diagnosed job `ae553b3d-68d7-4047-8a24-c89937d20e89`: its real timeout was masked by a

@@ -1,5 +1,17 @@
 # RTX 4050 and host performance
 
+## Sleeve skin-recovery follow-up - 16 November 2026
+
+The authorized comparison ran locally on the RTX 4050. The deterministic baseline completed in
+79.566 s and the two-pass recovery path in 148.241 s before the final CPU-only chroma adjustment.
+The exact final opt-in CUDA test passed in 150.04 s including pytest/subprocess overhead, versus
+the historical 184.237 s reference. The last measured PyTorch peak was **3,727.79 MiB**; no GPU
+allocation code changed after it. No FASHN child or temporary directory remained.
+
+SAM 2 remains `skipped_vram_budget`: this profile previously measured 5,818/6,141 MiB total VRAM,
+so another model would violate headroom. The existing parser is unchanged; no model or CUDA
+package was added.
+
 ## CUDA environment isolation follow-up - 16 November 2026
 
 `start-ollama.ps1` now applies `CUDA_VISIBLE_DEVICES=-1` only to the spawned Ollama server and
