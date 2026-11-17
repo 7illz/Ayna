@@ -34,6 +34,7 @@ STAGE_PROGRESS = {
     "cuda_synthesis": 75,
     "output_parsing": 85,
     "skin_recovery": 90,
+    "detail_restoration": 93,
     "image_encoding": 95,
     "output_validation": 95,
 }
@@ -201,6 +202,7 @@ def infer(
             if getattr(settings, "tryon_skin_recovery", True)
             else "--no-skin-recovery"
         )
+        command.append("--restore" if getattr(settings, "tryon_restore", False) else "--no-restore")
         # Do not leave verbose model/tqdm output in an unread PIPE: its bounded Windows
         # buffer can fill and deadlock the child before inference completes.
         with log_path.open("w+", encoding="utf-8", errors="replace") as log_file:

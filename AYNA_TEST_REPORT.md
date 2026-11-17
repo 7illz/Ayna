@@ -329,3 +329,19 @@ before merge; final SHA/CI evidence is attached to PR #3.
 The real 50-case comparison was not run because no consented fixtures exist under
 `.data/fixtures`. LPIPS, KID and face identity are reported unavailable rather than replaced with
 unrelated proxies; their missing approved dependencies are recorded in `docs/TRYON_BLOCKERS.md`.
+
+## 18 November 2026 Part C optional restoration
+
+| Check | Result |
+|---|---|
+| Ruff format/check | PASS; 96 files formatted and lint-clean |
+| MyPy | PASS; 60 application/evaluation source files |
+| Backend pytest | PASS; **119 passed, 3 skipped** in 129.01 s |
+| Alembic check | PASS; no new upgrade operations |
+| Frontend API types/lint/typecheck | PASS |
+| Frontend Vitest/build | PASS; **21 tests in 7 files**, 2,083 modules built |
+| Synthetic restoration off | L1 0.0000, SSIM 1.0000, new-marks 0.6027 |
+| Synthetic restoration on | L1 0.2316, SSIM 0.9997, new-marks 2.9316 |
+
+The classical restoration pass remains default-off because it worsened the available synthetic
+metrics. No real-fixture or learned-restoration comparison was possible.

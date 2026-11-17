@@ -81,7 +81,9 @@ def main() -> None:
     parser.add_argument("--weights", required=True)
     parser.add_argument("--person", required=True)
     parser.add_argument("--garment", required=True)
-    parser.add_argument("--category", choices=["tops", "bottoms", "one-pieces"], required=True)
+    parser.add_argument(
+        "--category", choices=["tops", "bottoms", "one-pieces"], required=True
+    )
     parser.add_argument("--output", required=True)
     parser.add_argument("--job-id", default="debug")
     parser.add_argument("--debug-dir")
@@ -90,6 +92,9 @@ def main() -> None:
         "--skin-recovery",
         action=argparse.BooleanOptionalAction,
         default=True,
+    )
+    parser.add_argument(
+        "--restore", action=argparse.BooleanOptionalAction, default=False
     )
     args = parser.parse_args()
 
@@ -107,11 +112,14 @@ def main() -> None:
         composite_original_resolution,
         mask_pixels,
     )
+    from app.modules.tryon.restoration import restore_edit_region
 
     debug_root = None
     if args.debug_dir:
         safe_job_id = "".join(
-            character for character in args.job_id if character.isalnum() or character == "-"
+            character
+            for character in args.job_id
+            if character.isalnum() or character == "-"
         )
         debug_root = Path(args.debug_dir) / (safe_job_id[:64] or "debug")
         debug_root.mkdir(parents=True, exist_ok=True)
@@ -153,7 +161,9 @@ def main() -> None:
         if debug_root is None:
             return
         save_debug_image(name.replace(".png", "_ids.png"), labels.astype(np.uint8))
-        colorized = label_colors[np.clip(labels.astype(np.int16), 0, len(label_colors) - 1)]
+        colorized = label_colors[
+            np.clip(labels.astype(np.int16), 0, len(label_colors) - 1)
+        ]
         visualization = Image.fromarray(colorized)
         legend_width = 220
         canvas = Image.new(
@@ -168,7 +178,9 @@ def main() -> None:
                 (visualization.width + 8, y, visualization.width + 24, y + 16),
                 fill=color,
             )
-            draw.text((visualization.width + 30, y), f"{label_id}: {label_name}", fill="black")
+            draw.text(
+                (visualization.width + 30, y), f"{label_id}: {label_name}", fill="black"
+            )
         canvas.save(debug_root / name, "PNG")
 
     started = PROCESS_STARTED
@@ -179,7 +191,9 @@ def main() -> None:
         torch_version=torch.__version__,
         torch_cuda=torch.version.cuda,
         cuda_available=torch.cuda.is_available(),
-        cuda_device=torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
+        cuda_device=torch.cuda.get_device_name(0)
+        if torch.cuda.is_available()
+        else None,
         ort_version=ort.__version__,
         ort_available_providers=ort.get_available_providers(),
     )
@@ -231,7 +245,9 @@ def main() -> None:
                 **call_kwargs,
                 "img_np": original_image.copy(),
                 "seg_pred": call_kwargs["seg_pred"].copy(),
-                "labels_to_segment_indices": list(call_kwargs["labels_to_segment_indices"]),
+                "labels_to_segment_indices": list(
+                    call_kwargs["labels_to_segment_indices"]
+                ),
                 "disable_masking": False,
             }
             debug_ca_image = original_clothing(**debug_kwargs)
@@ -306,7 +322,9 @@ def main() -> None:
         elif call_index == 1:
             garment_labels = labels.copy()
         save_label_map(
-            "05_parser_person_labels.png" if call_index == 0 else "06_parser_garment_labels.png",
+            "05_parser_person_labels.png"
+            if call_index == 0
+            else "06_parser_garment_labels.png",
             labels,
         )
 
@@ -317,7 +335,9 @@ def main() -> None:
         2,
         callback=capture_pose,
     )
-    pipeline.hp_model = PredictStageProxy(pipeline.hp_model, started, callback=capture_parser)
+    pipeline.hp_model = PredictStageProxy(
+        pipeline.hp_model, started, callback=capture_parser
+    )
     emit(
         "model_loading",
         "completed",
@@ -341,7 +361,9 @@ def main() -> None:
     baseline = result.images[0]
     save_debug_image("10_raw_model_output.png", baseline)
     emit("output_parsing", "started", started)
-    output_labels = pipeline.hp_model.target.predict(np.asarray(baseline.convert("RGB")))
+    output_labels = pipeline.hp_model.target.predict(
+        np.asarray(baseline.convert("RGB"))
+    )
     save_label_map("10b_parser_output_labels.png", output_labels)
     emit("output_parsing", "completed", started, parser_device="cpu")
     plan = build_preservation_plan(
@@ -372,9 +394,24 @@ def main() -> None:
         plan,
         recover_new_skin=args.skin_recovery,
     )
-    recovery_metadata["skin_recovery_seconds"] = round(time.perf_counter() - recovery_started, 3)
+    recovery_metadata["skin_recovery_seconds"] = round(
+        time.perf_counter() - recovery_started, 3
+    )
     if args.skin_recovery and newly_exposed_pixels:
         emit("skin_recovery", "completed", started, **recovery_metadata)
+    restoration_metadata = {
+        "restoration_applied": args.restore,
+        "restoration_method": "classical_unsharp_mask" if args.restore else None,
+        "restoration_seconds": 0.0,
+    }
+    if args.restore:
+        emit("detail_restoration", "started", started)
+        restoration_started = time.perf_counter()
+        result.images[0] = restore_edit_region(person_input, result.images[0], plan)
+        restoration_metadata["restoration_seconds"] = round(
+            time.perf_counter() - restoration_started, 3
+        )
+        emit("detail_restoration", "completed", started, **restoration_metadata)
     del pipeline
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -395,6 +432,7 @@ def main() -> None:
                     else None
                 ),
                 **recovery_metadata,
+                **restoration_metadata,
             }
         )
     )

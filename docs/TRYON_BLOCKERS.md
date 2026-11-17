@@ -27,3 +27,12 @@ This file records optional or private inputs that are intentionally not download
 - LS-TON: availability and dataset license for the 770-triplet UR-VTON benchmark must be verified
   by the operator. The dataset must be placed below `.data/fixtures/ls-ton/`; it is never scraped
   or downloaded automatically. Until then its loader remains disabled.
+
+## Part C learned restoration models
+
+No learned restoration checkpoint is installed, so `TRYON_RESTORE` uses only a classical
+edge-aware unsharp pass and defaults off. Candidate models require review before any download:
+Real-ESRGAN (BSD-3-Clause code; model weights and roughly 64–67 MB checkpoint provenance must be
+verified) and SwinIR (Apache-2.0 code; checkpoint size varies by task). Their actual RTX 4050 VRAM
+footprints are unmeasured and therefore not claimed. Any future model must load only after FASHN
+is unloaded and must remain below the 6 GB limit.

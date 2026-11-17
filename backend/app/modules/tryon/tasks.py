@@ -194,6 +194,9 @@ def process_tryon_job(job_id: str) -> None:
                             "parser_device",
                             "preserved_pixels",
                             "newly_exposed_skin_pixels",
+                            "restoration_applied",
+                            "restoration_method",
+                            "restoration_seconds",
                         }
                         runtime = dict(current_diagnostics.get("runtime", {}))
                         runtime.update(

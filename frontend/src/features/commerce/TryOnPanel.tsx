@@ -23,6 +23,7 @@ const stageLabels: Record<string, string> = {
   garment_preprocessing: 'Preparing the selected garment',
   cuda_synthesis: 'Generating the preview on the RTX GPU',
   output_parsing: 'Mapping the generated garment region',
+  detail_restoration: 'Restoring garment detail',
   skin_recovery: 'Recovering exposed skin tone',
   image_encoding: 'Encoding the generated image',
   output_validation: 'Validating the private result',

@@ -50,6 +50,11 @@ authorized fixture paths, CUDA and weights are supplied.
 The stage sequence adds `output_parsing` at 85% between CUDA synthesis (75%) and conditional skin
 recovery (90%). Skin recovery is omitted entirely when its real mask is empty.
 
+Optional `detail_restoration` runs at 93% after compositing and before encoding. It is a classical
+unsharp pass restricted to the parsed garment/new-skin edit region; the preservation core is
+restored from the source afterward. `TRYON_RESTORE` defaults off because no consented real-fixture
+evaluation is available.
+
 ## 9 November 2026 timeout investigation
 
 Job `ae553b3d-68d7-4047-8a24-c89937d20e89` used a 683 x 911 RGB person image and a
