@@ -313,3 +313,19 @@ before merge; final SHA/CI evidence is attached to PR #3.
 | Frontend production build | PASS; Vite built 2,083 modules in 6.52 s |
 | RTX 4050 integration | PASS on the available authorized white-tee pair; 164.441 s, 3,727.79 MiB peak PyTorch CUDA, 683 x 911 output |
 | Bare-arm tattoo regression | SKIPPED; private fixture path was not supplied |
+
+## 18 November 2026 Part B evaluation harness
+
+| Check | Result |
+|---|---|
+| Ruff format/check | PASS; 94 files formatted and lint-clean |
+| MyPy | PASS; 59 application/evaluation source files |
+| Backend pytest | PASS; **118 passed, 3 skipped** in 109.50 s |
+| Alembic check | PASS; no new upgrade operations |
+| Frontend API types/lint/typecheck | PASS |
+| Frontend Vitest/build | PASS; **21 tests in 7 files**, 2,083 modules built |
+| Synthetic harness | PASS; outside-edit L1 0.0000, SSIM 1.0000, new-marks 0.6027 |
+
+The real 50-case comparison was not run because no consented fixtures exist under
+`.data/fixtures`. LPIPS, KID and face identity are reported unavailable rather than replaced with
+unrelated proxies; their missing approved dependencies are recorded in `docs/TRYON_BLOCKERS.md`.

@@ -14,3 +14,16 @@ This file records optional or private inputs that are intentionally not download
 - Effect: the three-seed tattoo diagnosis and opt-in GPU regression cannot run. The test skips
   honestly; the existing authorized long-sleeve-to-short-sleeve pair was used only for the
   measured original-resolution/CUDA check.
+
+## Part B optional learned evaluation metrics
+
+- LPIPS: the `lpips` package and its AlexNet/VGG weights are not installed. Download size and
+  transitive model license must be reviewed before installation; no download was attempted.
+- KID: an approved Inception or equivalent feature extractor is not installed. KID is selected
+  over FID because KID's polynomial-MMD estimator is unbiased at small sample sizes. Exact weight
+  size/license depend on the extractor selected by the operator.
+- Face identity: no consent-reviewed face-embedding model is installed. The harness reports this
+  metric unavailable rather than substituting a misleading pixel metric.
+- LS-TON: availability and dataset license for the 770-triplet UR-VTON benchmark must be verified
+  by the operator. The dataset must be placed below `.data/fixtures/ls-ton/`; it is never scraped
+  or downloaded automatically. Until then its loader remains disabled.
