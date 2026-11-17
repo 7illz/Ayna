@@ -32,6 +32,7 @@ STAGE_PROGRESS = {
     "human_parsing": 50,
     "garment_preprocessing": 65,
     "cuda_synthesis": 75,
+    "output_parsing": 85,
     "skin_recovery": 90,
     "image_encoding": 95,
     "output_validation": 95,

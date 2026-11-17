@@ -299,3 +299,17 @@ GitHub CI on initial integration head `f996383` passed all backend/frontend/Comp
 [push run](https://github.com/RafiALMahmud/Ayna/actions/runs/42205529095).
 The final small test-isolation/UI assertion fixes are checked again on the exact PR head
 before merge; final SHA/CI evidence is attached to PR #3.
+
+## 17 November 2026 Part A visible-skin preservation
+
+| Check | Result |
+|---|---|
+| Ruff format/check | PASS; 86 files formatted, all lint checks passed |
+| MyPy | PASS; 53 application source files |
+| Backend pytest | PASS; **115 passed, 3 skipped** in 112.92 s |
+| Alembic check | PASS; no new upgrade operations |
+| Frontend API types/lint/typecheck | PASS |
+| Frontend Vitest | PASS; **21 tests in 7 files** |
+| Frontend production build | PASS; Vite built 2,083 modules in 6.52 s |
+| RTX 4050 integration | PASS on the available authorized white-tee pair; 164.441 s, 3,727.79 MiB peak PyTorch CUDA, 683 x 911 output |
+| Bare-arm tattoo regression | SKIPPED; private fixture path was not supplied |

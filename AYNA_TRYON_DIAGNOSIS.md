@@ -26,6 +26,30 @@ bounded runtime diagnostics. The final private proof measured forearm-to-face La
 before** and **3.0830 after**, with outside-support L1 exactly **0.0**. Visual review rejected two
 intermediate blocky variants before accepting the texture-preserving path.
 
+## 17 November 2026 visible-skin preservation follow-up
+
+The final compositor now parses the unpadded raw output and derives the output garment region
+from garment labels plus thresholded changes adjacent to that region. Source face, hair, hands,
+already-visible skin and background outside the garment region are restored from the source with
+a four-pixel feather; the eroded preservation core is pixel-identical. Newly exposed skin is the
+only area eligible for low-frequency recovery. Recovery removes model detail, matches the nearest
+real source skin in Lab space and retains only broad illumination.
+
+The output-resolution policy is explicit: the generated image is resized to the **original input
+width and height** with Lanczos before compositing. The source is never downscaled to the model's
+output resolution. A measured long-sleeve-to-short-sleeve run returned 683 x 911 from a 683 x 911
+source in 164.441 seconds. CUDA synthesis used `cuda:0` and reported 3,727.79 MiB peak PyTorch
+allocation; output parsing ran on CPU and the recovery/composite stage took 0.135 seconds.
+
+The requested bare-arm tattoo fixture was not present under `.data/fixtures`; the supplied prompt
+contained the literal placeholder `<PATH, under .data/fixtures>`. Consequently the required
+recovery-off/on/three-seed diagnosis is not yet measurable, and no claim is made about which stage
+introduces tattoos on that photograph. The opt-in regression test is ready and skips unless the
+authorized fixture paths, CUDA and weights are supplied.
+
+The stage sequence adds `output_parsing` at 85% between CUDA synthesis (75%) and conditional skin
+recovery (90%). Skin recovery is omitted entirely when its real mask is empty.
+
 ## 9 November 2026 timeout investigation
 
 Job `ae553b3d-68d7-4047-8a24-c89937d20e89` used a 683 x 911 RGB person image and a

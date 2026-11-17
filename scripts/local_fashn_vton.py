@@ -85,6 +85,7 @@ def main() -> None:
     parser.add_argument("--output", required=True)
     parser.add_argument("--job-id", default="debug")
     parser.add_argument("--debug-dir")
+    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
         "--skin-recovery",
         action=argparse.BooleanOptionalAction,
@@ -101,11 +102,10 @@ def main() -> None:
 
     backend_path = Path(__file__).resolve().parents[1] / "backend"
     sys.path.insert(0, str(backend_path))
-    from app.modules.tryon.skin_recovery import (
-        build_skin_recovery_plan,
-        color_match_and_composite,
-        fill_with_skin_sample,
-        resize_mask,
+    from app.modules.tryon.preservation import (
+        build_preservation_plan,
+        composite_original_resolution,
+        mask_pixels,
     )
 
     debug_root = None
@@ -218,9 +218,6 @@ def main() -> None:
     preprocessing_calls = 0
     person_labels = None
     garment_labels = None
-    recovery_pass = False
-    recovery_plan = None
-    skin_conditioning = None
     original_clothing = pipeline_module.create_clothing_agnostic_image
     original_garment = pipeline_module.create_garment_image
 
@@ -241,13 +238,7 @@ def main() -> None:
             replacement_mask = np.any(debug_ca_image != original_image, axis=2)
             save_debug_image("07_garment_replacement_mask.png", replacement_mask)
             save_debug_image("08_clothing_agnostic.png", debug_ca_image)
-        if recovery_pass and recovery_plan is not None and recovery_plan.applied:
-            if skin_conditioning is None:
-                raise RuntimeError("Skin-recovery conditioning was not prepared")
-            result = call_kwargs["img_np"].copy()
-            save_debug_image("13_recovery_conditioning.png", result)
-        else:
-            result = original_clothing(*call_args, **call_kwargs)
+        result = original_clothing(*call_args, **call_kwargs)
         preprocessing_calls += 1
         return result
 
@@ -258,7 +249,7 @@ def main() -> None:
         result = original_garment(*call_args, **call_kwargs)
         preprocessing_calls += 1
         save_debug_image(
-            "13_recovery_garment_prepared.png" if recovery_pass else "09_garment_prepared.png",
+            "09_garment_prepared.png",
             result,
         )
         if preprocessing_calls == 2:
@@ -274,16 +265,21 @@ def main() -> None:
             self.pose_model = DWposeDetector(checkpoints_dir=dwpose_dir, device="cpu")
 
         def _sample(self, **kwargs):
-            if not recovery_pass:
-                emit("cuda_synthesis", "started", started)
+            emit("cuda_synthesis", "started", started)
             result = super()._sample(**kwargs)
             if result:
-                save_debug_image(
-                    "14_recovery_raw_output.png" if recovery_pass else "10_raw_model_output.png",
-                    result[0],
-                )
-            if not recovery_pass:
-                emit("cuda_synthesis", "completed", started)
+                save_debug_image("10a_internal_padded_sample.png", result[0])
+            emit(
+                "cuda_synthesis",
+                "completed",
+                started,
+                cuda_peak_mib=(
+                    round(torch.cuda.max_memory_allocated() / 1024**2, 2)
+                    if torch.cuda.is_available()
+                    else None
+                ),
+                candidate_seed=args.seed,
+            )
             return result
 
     emit("model_loading", "started", started)
@@ -340,59 +336,48 @@ def main() -> None:
         person_image=person_input,
         garment_image=garment_input,
         category=args.category,
+        seed=args.seed,
     )
     baseline = result.images[0]
+    save_debug_image("10_raw_model_output.png", baseline)
+    emit("output_parsing", "started", started)
+    output_labels = pipeline.hp_model.target.predict(np.asarray(baseline.convert("RGB")))
+    save_label_map("10b_parser_output_labels.png", output_labels)
+    emit("output_parsing", "completed", started, parser_device="cpu")
+    plan = build_preservation_plan(
+        person_input,
+        baseline,
+        Image.fromarray(person_labels.astype(np.uint8)),
+        Image.fromarray(output_labels.astype(np.uint8)),
+    )
+    save_debug_image("10c_output_garment_region.png", plan.garment_region)
+    save_debug_image("10d_preserve_mask.png", plan.preserve_mask)
+    save_debug_image("10e_newly_exposed_skin.png", plan.newly_exposed_skin)
+    save_debug_image("10f_visible_skin.png", plan.visible_skin)
+    newly_exposed_pixels = mask_pixels(plan.newly_exposed_skin)
     recovery_metadata = {
-        "skin_recovery_applied": False,
+        "skin_recovery_applied": bool(args.skin_recovery and newly_exposed_pixels),
         "skin_recovery_seconds": 0.0,
         "sam2_refinement": "skipped_vram_budget",
+        "candidate_seed": args.seed,
+        "preserved_pixels": mask_pixels(plan.preserve_mask),
+        "newly_exposed_skin_pixels": newly_exposed_pixels,
     }
-    emit("skin_recovery", "started", started)
     recovery_started = time.perf_counter()
-    if args.skin_recovery and person_labels is not None and garment_labels is not None:
-        recovery_plan = build_skin_recovery_plan(
-            Image.fromarray(person_labels.astype(np.uint8)),
-            Image.fromarray(garment_labels.astype(np.uint8)),
-        )
-        recovery_metadata["sleeve_case"] = recovery_plan.sleeve_case
-        if recovery_plan.applied:
-            skin_conditioning, _ = fill_with_skin_sample(
-                person_input,
-                resize_mask(recovery_plan.edit_support, person_input.size),
-                resize_mask(recovery_plan.skin_sample, person_input.size),
-            )
-            save_debug_image("12_skin_conditioning.png", skin_conditioning)
-            save_debug_image("12a_old_sleeve_mask.png", recovery_plan.old_sleeve)
-            save_debug_image("12b_skin_recovery_core.png", recovery_plan.core_edit)
-            save_debug_image("12c_skin_recovery_support.png", recovery_plan.edit_support)
-            save_debug_image("12d_skin_sample_mask.png", recovery_plan.skin_sample)
-            recovery_pass = True
-            recovered = pipeline(
-                person_image=skin_conditioning,
-                garment_image=garment_input,
-                category=args.category,
-            ).images[0]
-            recovery_pass = False
-            save_debug_image("14b_recovery_unpadded.png", recovered)
-            final_image, recovery_metrics = color_match_and_composite(
-                baseline,
-                recovered,
-                recovery_plan.core_edit,
-                recovery_plan.edit_support,
-                person_input,
-                recovery_plan.skin_sample,
-            )
-            recovery_metadata.update(recovery_metrics)
-            recovery_metadata["skin_recovery_applied"] = True
-            save_debug_image("15_recovery_composite.png", final_image)
-            result.images[0] = final_image
-        else:
-            result.images[0] = baseline
-    else:
-        recovery_metadata["sleeve_case"] = "disabled" if not args.skin_recovery else "unknown"
-        result.images[0] = baseline
+    if args.skin_recovery and newly_exposed_pixels:
+        emit("skin_recovery", "started", started)
+    result.images[0] = composite_original_resolution(
+        person_input,
+        baseline,
+        plan,
+        recover_new_skin=args.skin_recovery,
+    )
     recovery_metadata["skin_recovery_seconds"] = round(time.perf_counter() - recovery_started, 3)
-    emit("skin_recovery", "completed", started, **recovery_metadata)
+    if args.skin_recovery and newly_exposed_pixels:
+        emit("skin_recovery", "completed", started, **recovery_metadata)
+    del pipeline
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     emit("image_encoding", "started", started)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)

@@ -189,6 +189,11 @@ def process_tryon_job(job_id: str) -> None:
                             "sam2_refinement",
                             "skin_tone_delta_before",
                             "skin_tone_delta_after",
+                            "cuda_peak_mib",
+                            "candidate_seed",
+                            "parser_device",
+                            "preserved_pixels",
+                            "newly_exposed_skin_pixels",
                         }
                         runtime = dict(current_diagnostics.get("runtime", {}))
                         runtime.update(

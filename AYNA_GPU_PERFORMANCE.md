@@ -62,3 +62,13 @@ process accounting showed no Ollama allocation. This prevents chatbot traffic fr
 The currently verified profile is the conservative performance profile. A higher-resolution
 "quality mode" is not exposed because it has not passed repeated 6 GB runs. CUDA OOM and timeout
 are bounded failures; Ayna does not loop indefinitely or report corrupted output as success.
+
+## 17 November 2026 original-resolution preservation run
+
+The authorized long-sleeve-to-short-sleeve white-tee pair completed on the native RTX 4050 in
+**164.441 seconds**, versus the earlier 184.237-second reference run. CUDA synthesis completed at
+162.928 seconds and reported **3,727.79 MiB** peak PyTorch CUDA allocation on `cuda:0`; output
+parsing used CPU. The conditional preservation/recovery composite took **0.135 seconds** and the
+result retained the source resolution of **683 x 911**. The run left no `ayna-tryon-*` temporary
+directory. Process command-line inspection was denied by Windows CIM permissions, so the shell
+could not independently enumerate command lines; the launched child itself exited with code 0.
