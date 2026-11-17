@@ -21,7 +21,12 @@ from app.modules.tryon.schemas import TryOnOut
 from app.modules.tryon.tasks import process_tryon_job
 
 router = APIRouter(prefix="/try-on", tags=["Private virtual try-on"])
-SUPPORTED = {"shirts": {"upper_body", "full_body"}, "pants": {"full_body"}, "shoes": {"full_body"}}
+SUPPORTED = {
+    "shirts": {"upper_body", "full_body"},
+    "pants": {"full_body"},
+    "dresses": {"full_body"},
+    "shoes": {"full_body"},
+}
 
 
 def owned_job(db, job_id: UUID | str, user_id: str) -> TryOnJob:
@@ -94,7 +99,9 @@ async def create_job(
     product = listed(db, str(product_id))
     allowed_framing = SUPPORTED.get(product.category)
     if not allowed_framing:
-        raise HTTPException(422, "Virtual try-on is available only for shirts, pants, and shoes")
+        raise HTTPException(
+            422, "Virtual try-on is available only for shirts, dresses, pants, and shoes"
+        )
     if settings.tryon_provider == "fashn_vton" and product.category == "shoes":
         raise HTTPException(
             422,

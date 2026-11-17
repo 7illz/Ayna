@@ -40,6 +40,7 @@ DEFAULT_CATEGORIES = {
     "bags": "Bags",
     "shoes": "Shoes",
     "shirts": "Clothing",
+    "dresses": "Women's dresses",
     "pants": "Trousers",
     "electronics": "Electronics",
     "home": "Home & living",
@@ -166,9 +167,9 @@ def product_view(db, product: Product, private=False) -> ShopProduct:
         model_disclosure=disclosure(job.provider) if model_url and job else None,
         try_on_eligible=product.category
         in (
-            {"shirts", "pants"}
+            {"shirts", "pants", "dresses"}
             if settings.tryon_provider == "fashn_vton"
-            else {"shirts", "pants", "shoes"}
+            else {"shirts", "pants", "dresses", "shoes"}
         ),
     )
 

@@ -137,7 +137,11 @@ def process_tryon_job(job_id: str) -> None:
                 raise TryOnInferenceError("TRYON_PRODUCT_MISSING")
             if product.category == "shoes":
                 raise TryOnInferenceError("SHOE_TRYON_MODEL_UNAVAILABLE")
-            category = {"shirts": "tops", "pants": "bottoms"}.get(product.category)
+            category = {
+                "shirts": "tops",
+                "pants": "bottoms",
+                "dresses": "one-pieces",
+            }.get(product.category)
             if category is None or not product.images:
                 raise TryOnInferenceError("TRYON_PRODUCT_UNSUPPORTED")
             garment_image = sorted(

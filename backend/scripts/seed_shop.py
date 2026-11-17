@@ -99,12 +99,52 @@ PRODUCTS = [
     (
         "dress",
         "Weekend summer dress",
-        "shirts",
+        "dresses",
         349000,
         None,
         16,
         "An airy silhouette for slow weekends and brighter days. Available in multiple sizes.",
         False,
+    ),
+    (
+        "womens-emerald-wrap",
+        "Women's emerald wrap midi dress",
+        "dresses",
+        429000,
+        499000,
+        20,
+        "A flowing emerald wrap dress with short sleeves, a defined waist and a midi hem.",
+        True,
+    ),
+    (
+        "womens-burgundy-maxi",
+        "Women's burgundy maxi dress",
+        "dresses",
+        489000,
+        559000,
+        16,
+        "An elegant long-sleeve burgundy maxi with a softly gathered waist and opaque lining.",
+        True,
+    ),
+    (
+        "womens-botanical-midi",
+        "Women's botanical cotton midi dress",
+        "dresses",
+        379000,
+        449000,
+        22,
+        "A cream cotton midi with a small blue botanical print and a gently flared skirt.",
+        True,
+    ),
+    (
+        "womens-navy-shirt-dress",
+        "Women's navy belted shirt dress",
+        "dresses",
+        459000,
+        529000,
+        18,
+        "A navy cotton-poplin shirt dress with three-quarter sleeves and a matching fabric belt.",
+        True,
     ),
     (
         "lamp",
@@ -171,7 +211,11 @@ def main():
         db.commit()
         for key, name, category, price, compare, stock, description, featured in PRODUCTS:
             sku = f"AY-DEMO-{key.upper()}"
-            if db.scalar(select(Product.id).where(Product.sku == sku)):
+            existing = db.scalar(select(Product).where(Product.sku == sku))
+            if existing:
+                if key == "dress" and existing.category != "dresses":
+                    existing.category = "dresses"
+                    db.commit()
                 continue
             product = Product(
                 id=new_id(),
@@ -210,9 +254,15 @@ def main():
                     sort_order=0,
                 )
             )
-            if category in {"shirts", "shoes"}:
+            if category in {"shirts", "dresses", "shoes"}:
                 sizes = (
-                    ["38", "39", "40", "41", "42"] if category == "shoes" else ["S", "M", "L", "XL"]
+                    ["38", "39", "40", "41", "42"]
+                    if category == "shoes"
+                    else (
+                        ["XS", "S", "M", "L", "XL"]
+                        if category == "dresses"
+                        else ["S", "M", "L", "XL"]
+                    )
                 )
                 for size in sizes:
                     db.add(

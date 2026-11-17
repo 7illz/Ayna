@@ -52,6 +52,10 @@ def test_filter_parser_handles_bangla_numerals_and_terms():
     assert parsed.max_price_minor == 150000
 
 
+def test_filter_parser_recognizes_womens_dresses():
+    assert parse_filters("Show me available midi dresses").category == "dresses"
+
+
 def test_chat_applies_live_price_color_size_and_stock_filters(client, monkeypatch):
     expected = catalog_product(name="Black cotton shirt")
     catalog_product(name="Too expensive", price=250000)

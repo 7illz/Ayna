@@ -24,12 +24,12 @@ def image_bytes(fmt="PNG"):
     return data.getvalue()
 
 
-def fashn_job():
+def fashn_job(category="shirts"):
     with SessionLocal() as db:
         product = Product(
             seller_id=str(uuid4()),
             name="Runtime shirt",
-            category="shirts",
+            category=category,
             price_minor=10000,
             stock=2,
             sku=f"RUNTIME-{uuid4().hex}",
@@ -55,7 +55,7 @@ def fashn_job():
             product_id=product.id,
             idempotency_key=f"runtime-{uuid4()}",
             provider="fashn_vton",
-            framing="upper_body",
+            framing="full_body" if category == "dresses" else "upper_body",
             consent_at=now(),
             no_training=True,
             source_key=source_key,
@@ -67,6 +67,23 @@ def fashn_job():
         db.add(job)
         db.commit()
         return job.id
+
+
+def test_dress_uses_one_piece_fashn_category(monkeypatch):
+    job_id = fashn_job("dresses")
+    captured = {}
+
+    def successful(_person, _garment, category, **_kwargs):
+        captured["category"] = category
+        return image_bytes(), {"elapsed_seconds": 1.0, "device": "cuda:0"}
+
+    monkeypatch.setattr("app.modules.tryon.tasks.infer", successful)
+    process_tryon_job(job_id)
+
+    with SessionLocal() as db:
+        job = db.get(TryOnJob, job_id)
+        assert job.status == "succeeded"
+    assert captured["category"] == "one-pieces"
 
 
 def test_timeout_code_and_stage_diagnostics_are_preserved(monkeypatch):

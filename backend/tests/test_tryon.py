@@ -78,6 +78,9 @@ def test_tryon_requires_account_supported_category_and_consent(client):
     supported = product("shoes")
     assert submit(client, supported, consent="false").status_code == 422
     assert submit(client, supported, no_training="false").status_code == 422
+    dress = product("dresses")
+    assert submit(client, dress, framing="upper_body").status_code == 422
+    assert submit(client, dress, framing="full_body").status_code == 202
 
 
 def test_tryon_diagnostic_is_private_idempotent_and_deletable(client):

@@ -41,6 +41,12 @@ test('requires consent and clearly labels diagnostic limitations', () => {
   expect(screen.getByLabelText(/not used for model training/i)).toBeRequired()
 })
 
+test('requires full-body framing for a dress', () => {
+  render(<TryOnPanel product={{ ...product, category: 'dresses' }} />)
+  expect(screen.getByLabelText('Framing')).toHaveValue('full_body')
+  expect(screen.queryByRole('option', { name: 'Upper body' })).not.toBeInTheDocument()
+})
+
 test('uploads privately, reports no real result, and deletes the job', async () => {
   state.api
     .mockResolvedValueOnce({

@@ -15362,7 +15362,7 @@
           },
           "category": {
             "type": "string",
-            "pattern": "^(shoes|bags|shirts|pants)$",
+            "pattern": "^(shoes|bags|shirts|pants|dresses)$",
             "title": "Category"
           },
           "description": {

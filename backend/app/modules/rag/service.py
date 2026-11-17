@@ -18,6 +18,7 @@ BANGLA_DIGITS = str.maketrans("০১২৩৪৫৬৭৮৯", "0123456789")
 CATEGORY_TERMS = {
     "shirts": ("shirt", "shirts", "t-shirt", "tshirt", "tee", "শার্ট", "টি-শার্ট"),
     "pants": ("pant", "pants", "trouser", "trousers", "জিন্স", "প্যান্ট"),
+    "dresses": ("dress", "dresses", "maxi", "midi", "gown"),
     "shoes": ("shoe", "shoes", "sneaker", "sneakers", "জুতা", "স্নিকার"),
     "bags": ("bag", "bags", "ব্যাগ"),
     "accessories": ("accessory", "accessories", "ঘড়ি", "watch"),
@@ -141,7 +142,7 @@ def filtered_products(db, filters: SearchFilters, limit: int) -> list[Product]:
             case((has_variants, func.coalesce(variant_stock, 0)), else_=Product.stock) > 0
         )
     if filters.try_on:
-        stmt = stmt.where(Product.category.in_(("shirts", "pants")))
+        stmt = stmt.where(Product.category.in_(("shirts", "pants", "dresses")))
     if filters.has_3d:
         stmt = stmt.where(
             Product.publish_status == "approved",

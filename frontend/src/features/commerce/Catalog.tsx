@@ -155,6 +155,7 @@ export function HomePage() {
         <div className="shop-editorial-categories">
           {[
             ['shirts', 'Your everyday uniform'],
+            ['dresses', 'A dress for every day'],
             ['home', 'Make room for good things'],
             ['electronics', 'Small upgrades, big possibilities'],
           ].map(([category, text]) => (
